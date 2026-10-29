@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="A bar exam study dashboard built with Claude: spaced repetition flashcards, blank page recall, MBE error log, focus mode and progress tracking. Demo with sample data.">
+<title>Bar Prep Dashboard Demo</title>
+</head>
+<body>
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a colorful study desk. A navy masthead with greeting, affirmation and countdowns, a pill tab rail, then one column of panels per view. Each bar subject has its own color everywhere it appears. Focus mode takes over the screen. */
+:root{
+  --bg:#F5F6FA; --surface:#FFFFFF; --sunk:#EDF0F6; --ink:#151A2D; --muted:#5B6278; --line:#DDE1EB;
+  --mast:#16204A; --mast-ink:#F4F6FF; --mast-muted:#B8C0E6;
+  --accent:#3D5AFE; --accent-ink:#FFFFFF; --accent-soft:#E6EAFF;
+  --sun:#FFB93E; --sun-soft:#FFF2D6; --coral:#FF6B5A; --coral-soft:#FFE6E2; --mint:#1FB58A; --mint-soft:#DDF5EC; --sky:#2E9BF0; --sky-soft:#DDEFFD; --grape:#8A5CF5; --grape-soft:#EEE7FF;
+  --good:#138A5E; --warn:#B26A00; --bad:#D23C2A; --good-soft:#DDF5EC; --warn-soft:#FFF0D4; --bad-soft:#FFE4DF;
+  --s-civ:#0F9E8E; --s-con:#7B4FE0; --s-k:#E5702F; --s-crim:#D9364F; --s-ev:#2F80ED; --s-rp:#3C9D4E; --s-torts:#C98B00; --s-ca:#C2418C;
+  --h0:#E6E9F2; --h1:#C7D0FF; --h2:#8E9EFF; --h3:#5B73FF; --h4:#2F45D6;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1020; --surface:#161A2E; --sunk:#1E2339; --ink:#ECEEFA; --muted:#A1A7C2; --line:#2A3050;
+  --mast:#1B2456; --mast-ink:#F4F6FF; --mast-muted:#B8C0E6;
+  --accent:#8C9DFF; --accent-ink:#0D1020; --accent-soft:#252C55;
+  --sun:#FFC45E; --sun-soft:#3A3020; --coral:#FF8A7B; --coral-soft:#3D2226; --mint:#43D3A6; --mint-soft:#163A30; --sky:#5CB4F6; --sky-soft:#17304A; --grape:#AE8BFF; --grape-soft:#2C2350;
+  --good:#43D3A6; --warn:#FFC45E; --bad:#FF8A7B; --good-soft:#163A30; --warn-soft:#3A3020; --bad-soft:#3D2226;
+  --s-civ:#3FD3C1; --s-con:#AE8BFF; --s-k:#FF9A5E; --s-crim:#FF7088; --s-ev:#6CB0FF; --s-rp:#6CD07D; --s-torts:#F2BE3A; --s-ca:#F07DBF;
+  --h0:#20253D; --h1:#2B3570; --h2:#3E4FB0; --h3:#6578FF; --h4:#A7B3FF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1020; --surface:#161A2E; --sunk:#1E2339; --ink:#ECEEFA; --muted:#A1A7C2; --line:#2A3050;
+  --mast:#1B2456; --mast-ink:#F4F6FF; --mast-muted:#B8C0E6;
+  --accent:#8C9DFF; --accent-ink:#0D1020; --accent-soft:#252C55;
+  --sun:#FFC45E; --sun-soft:#3A3020; --coral:#FF8A7B; --coral-soft:#3D2226; --mint:#43D3A6; --mint-soft:#163A30; --sky:#5CB4F6; --sky-soft:#17304A; --grape:#AE8BFF; --grape-soft:#2C2350;
+  --good:#43D3A6; --warn:#FFC45E; --bad:#FF8A7B; --good-soft:#163A30; --warn-soft:#3A3020; --bad-soft:#3D2226;
+  --s-civ:#3FD3C1; --s-con:#AE8BFF; --s-k:#FF9A5E; --s-crim:#FF7088; --s-ev:#6CB0FF; --s-rp:#6CD07D; --s-torts:#F2BE3A; --s-ca:#F07DBF;
+  --h0:#20253D; --h1:#2B3570; --h2:#3E4FB0; --h3:#6578FF; --h4:#A7B3FF; color-scheme:dark}
+
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.inner{max-width:1100px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:30px;line-height:1.1}
+h2{font-size:21px;line-height:1.2}
+h3{font-size:17px;line-height:1.3}
+p{margin:0}
+.muted{color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.label{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.small{font-size:13px}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* masthead */
+.mast{background:var(--mast);color:var(--mast-ink)}
+.mast .inner{padding-block:22px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 28px;align-items:end}
+@media (max-width:760px){.mast .inner{grid-template-columns:1fr}}
+.mast .hello{font-size:14px;color:var(--mast-muted);font-weight:600}
+.mast h1{color:var(--mast-ink);font-size:clamp(22px,3.4vw,32px);font-weight:800;margin-top:4px}
+.mast .aff{font-family:var(--display);font-weight:600;font-size:clamp(17px,2.2vw,21px);color:#FFD27A;margin-top:8px;line-height:1.3}
+.pills{display:flex;gap:10px;flex-wrap:wrap}
+.pill{border-radius:14px;padding:10px 14px;min-width:120px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.pill b{display:block;font-family:var(--mono);font-size:26px;line-height:1.05;font-weight:500}
+.pill span{font-size:12px;color:var(--mast-muted)}
+.pill.sun b{color:#FFD27A}.pill.mint b{color:#7FE8C5}.pill.sky b{color:#9CD2FF}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.tabs .inner{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+.tabs a{flex:none;display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--muted);font-weight:700;font-size:14px;padding:8px 13px;border-radius:999px}
+.tabs a:hover{color:var(--ink);background:var(--sunk)}
+.tabs a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+main.inner{padding-block:20px 72px}
+
+/* blocks */
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;min-width:0}
+.panel>header{display:flex;justify-content:space-between;align-items:center;gap:10px 12px;margin-bottom:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 15px;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sun{background:var(--sun);border-color:var(--sun);color:#1D1A10}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink)}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type=text],input[type=number],input[type=date],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
+textarea{resize:vertical;line-height:1.55}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>span{font-size:13px;font-weight:700;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.sun{background:var(--sun-soft);color:var(--ink)}
+.chip.acc{background:var(--accent-soft);color:var(--accent)}
+.subj{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px 3px 8px;border-radius:999px;white-space:nowrap;color:var(--ink);background:color-mix(in srgb,var(--c) 16%,var(--surface))}
+.subj::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.empty{padding:22px;border:1.5px dashed var(--line);border-radius:var(--r);color:var(--muted);text-align:center}
+.banner{padding:10px 14px;border-radius:10px;background:var(--warn-soft);color:var(--ink);font-size:14px;margin-bottom:14px}
+hr.rule{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+.tint{border-radius:var(--r);padding:18px 20px;min-width:0}
+.tint.sun{background:var(--sun-soft)}.tint.mint{background:var(--mint-soft)}.tint.sky{background:var(--sky-soft)}.tint.grape{background:var(--grape-soft)}.tint.coral{background:var(--coral-soft)}.tint.acc{background:var(--accent-soft)}
+.badge{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff}
+.badge svg.i{width:20px;height:20px}
+.badge.sun{background:var(--sun);color:#1D1A10}.badge.mint{background:var(--mint)}.badge.sky{background:var(--sky)}.badge.grape{background:var(--grape)}.badge.coral{background:var(--coral)}.badge.acc{background:var(--accent);color:var(--accent-ink)}
+
+/* today */
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media (max-width:820px){.hero{grid-template-columns:1fr}}
+.focus-cta{background:linear-gradient(135deg,#3D5AFE,#8A5CF5);color:#fff;border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px;justify-content:space-between}
+.focus-cta .prompt{font-family:var(--display);font-size:21px;font-weight:600;line-height:1.3}
+.focus-cta .btn{align-self:flex-start;font-size:15px;padding:11px 18px}
+.three{display:grid;gap:10px}
+.task{display:flex;gap:12px;align-items:center;padding:12px;border-radius:12px;background:var(--sunk)}
+.task.done{background:var(--good-soft)}
+.tick{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--muted);display:grid;place-items:center;cursor:pointer;background:var(--surface);padding:0;font-weight:800;color:#fff}
+.tick.on{background:var(--good);border-color:var(--good)}
+.task .t{font-weight:700}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,16px);gap:4px;overflow-x:auto;padding:3px 3px 6px}
+.heat button,.heat i,.heat-key i{width:16px;height:16px;border-radius:4px;background:var(--h0);border:0;padding:0;display:block}
+.heat button{cursor:pointer}
+.heat button:hover{outline:2px solid var(--muted);outline-offset:1px}
+.heat i.future{opacity:.35}
+.heat .l1,.heat-key .l1{background:var(--h1)}.heat .l2,.heat-key .l2{background:var(--h2)}.heat .l3,.heat-key .l3{background:var(--h3)}.heat .l4,.heat-key .l4{background:var(--h4)}
+.heat .today{outline:2px solid var(--sun);outline-offset:1px}
+.heat .sel{outline:2.5px solid var(--accent);outline-offset:1px}
+.heat-key{display:inline-flex;gap:3px}.heat-key i{width:12px;height:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.stat{padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.stat b{display:block;font-family:var(--mono);font-size:24px;font-weight:500;line-height:1.1}
+.stat span{font-size:12.5px;color:var(--muted)}
+.feel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mood-log{display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.mood-log div{display:flex;gap:10px}
+.mood-log .num{color:var(--muted);flex:none;width:52px}
+
+/* bars */
+.bar{height:9px;border-radius:999px;background:var(--sunk);overflow:hidden;flex:1;min-width:60px}
+.bar>i{display:block;height:100%;border-radius:999px}
+.weak{display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,170px) 50px 62px;gap:9px 12px;align-items:center;font-size:14px}
+.weak .s{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.subj-h{grid-column:1/-1;margin-top:10px;display:flex;gap:10px;align-items:center}
+.lose{display:flex;flex-direction:column;gap:8px}
+.lose .it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--sunk)}
+.lose .pts{font-family:var(--mono);font-size:20px;color:var(--bad);text-align:right}
+
+/* cards */
+.flash{min-height:270px;display:flex;flex-direction:column;gap:14px;border-top:5px solid var(--c,var(--accent))}
+.flash .cue{font-family:var(--display);font-weight:600;font-size:23px;line-height:1.3}
+.flash .ans{font-size:16px;padding:14px 16px;background:var(--mint-soft);border-radius:12px}
+.rate{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rate .btn{flex-direction:column;gap:2px;justify-content:center}
+.rate .btn small{font-weight:500;color:var(--muted);font-size:11.5px}
+.rate .r0{border-color:var(--bad);color:var(--bad)}.rate .r1{border-color:var(--warn);color:var(--warn)}.rate .r2{border-color:var(--good);color:var(--good)}.rate .r3{border-color:var(--sky);color:var(--sky)}
+
+/* recall */
+.recall{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px}
+@media (max-width:820px){.recall{grid-template-columns:1fr}}
+.topics{display:flex;flex-direction:column;gap:4px}
+.topic{display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;border:1px solid transparent;background:transparent;border-radius:10px;padding:8px 10px;cursor:pointer;width:100%}
+.topic:hover{background:var(--sunk)}
+.topic.on{background:var(--accent-soft);border-color:var(--accent)}
+.topic .n{min-width:0;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.page{font-family:var(--mono);font-size:14.5px;min-height:320px;background-color:var(--surface);background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% 26px;line-height:26px;padding:4px 14px}
+.reader{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start}
+.toc-tog{display:none}
+@media (max-width:860px){.reader{grid-template-columns:1fr}.reader .toc-side{position:static;max-height:none;padding:12px 16px}.toc-tog{display:inline-flex}.toc-side:not(.open) .toc-body{display:none}.toc-side header{margin:0!important}.pdfwrap{height:78vh}}
+.toc-side{position:sticky;top:64px;max-height:calc(100vh - 84px);overflow:auto}
+.toc-side .sec{border-top:1px solid var(--line);padding:6px 0}
+.toc-side .sec:first-of-type{border-top:0}
+.toc-side .sh{display:flex;width:100%;gap:8px;align-items:center;background:none;border:0;padding:6px 4px;font-weight:700;font-size:13.5px;text-align:left;cursor:pointer;color:var(--ink)}
+.toc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:2px 0 2px 10px}
+.toc-row .go{background:none;border:0;text-align:left;padding:5px 6px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--ink);display:flex;justify-content:space-between;gap:8px}
+.toc-row .go:hover,.toc-row .go.on{background:var(--accent-soft)}
+.toc-row .go .pp{font-family:var(--mono);font-size:12px;color:var(--muted);flex:none}
+.pdfwrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--sunk)}
+.pdfwrap{height:calc(100vh - 150px);min-height:480px;overflow:auto;-webkit-overflow-scrolling:touch}
+.pdfpages{display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px;margin:0 auto}
+.pdfpages .pg{position:relative;width:100%;background:#fff;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.18);overflow:hidden}
+.pdfpages .pg canvas{display:block;width:100%;height:100%}
+.pdfpages .pg .pn{position:absolute;right:8px;bottom:6px;font:600 11px var(--mono);color:#667;background:rgba(255,255,255,.85);padding:1px 6px;border-radius:6px}
+.ol-cover{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.ol-cover button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);border-top:5px solid var(--c);background:var(--surface);cursor:pointer;color:var(--ink)}
+.ol-cover button:hover{background:var(--sunk)}
+.ol-cover button strong{font-family:var(--display);font-size:17px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.ol-subj{display:flex;flex-wrap:wrap;gap:6px}
+.ol-subj .btn{gap:6px}.ol-subj .btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.ol-group{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ol-group>button.gh{display:flex;width:100%;align-items:center;gap:10px;padding:11px 14px;background:var(--sunk);border:0;cursor:pointer;text-align:left;font-weight:700;font-size:14.5px;color:var(--ink)}
+.ol-group>button.gh .bar{max-width:90px}
+.ol-list{display:flex;flex-direction:column}
+.ol-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 14px;border:0;border-top:1px solid var(--line);background:var(--surface);text-align:left;cursor:pointer;font-size:14px;color:var(--ink);width:100%}
+.ol-item:hover{background:var(--accent-soft)}
+.ol-item .pp{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.ref{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--sun-soft);font-size:13.5px}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.check:first-child{border-top:0}
+.check label{flex:1;cursor:pointer}
+.check input{margin-top:4px;width:17px;height:17px;accent-color:var(--good)}
+
+/* table */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+td.rule{min-width:260px;max-width:440px}
+td select{min-width:180px;padding:6px 8px}
+
+svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+svg .lbl{fill:var(--ink)}
+
+/* playbook */
+.toc{display:flex;gap:8px;flex-wrap:wrap}
+.pb h2{display:flex;align-items:center;gap:12px}
+.cov{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.cov .c{border-radius:12px;padding:14px;background:color-mix(in srgb,var(--c) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--c) 30%,var(--line))}
+.cov ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+.steps{counter-reset:s;display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.steps li{counter-increment:s;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:center}
+.steps li::before{content:counter(s);width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-family:var(--display)}
+.ticks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ticks li{display:flex;gap:10px}
+.ticks li::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--c,var(--accent));margin-top:8px}
+.timing{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center}
+@media (max-width:560px){.timing{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.timing div{background:var(--sky-soft);border-radius:10px;padding:8px 4px}
+.timing b{display:block;font-family:var(--mono);font-size:18px}
+.timing span{font-size:12px;color:var(--muted)}
+.flow{display:grid;gap:10px}
+.node{border-radius:12px;padding:12px 14px;border:1.5px solid var(--line);background:var(--surface)}
+.node.q{border-color:var(--s-crim);background:color-mix(in srgb,var(--s-crim) 8%,var(--surface))}
+.node.out{border-color:var(--accent);background:var(--accent-soft)}
+.fork{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.arrow{text-align:center;color:var(--muted);font-weight:800;line-height:1}
+.ck{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.ck:first-child{border-top:0}
+.ck input{width:20px;height:20px;margin-top:2px;accent-color:var(--good);flex:none}
+
+/* notes */
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.notes article{display:flex;flex-direction:column;gap:8px}
+.notes article .how{padding:10px 12px;border-radius:10px;background:var(--sunk)}
+.notes .src{font-size:12.5px;color:var(--muted)}
+
+/* focus overlay, a fixed dark room in both themes */
+[hidden]{display:none!important}
+.focus{position:fixed;inset:0;z-index:50;background:#0B0E1C;color:#EEF0FB;display:flex;flex-direction:column;overflow-y:auto;
+  padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.focus .in{max-width:660px;width:100%;margin:auto;display:flex;flex-direction:column;gap:18px}
+.focus h2{color:#EEF0FB;font-size:26px}
+.focus .muted{color:#9FA6C4}
+.focus textarea,.focus input,.focus select{background:#151A30;border-color:#2B3254;color:#EEF0FB}
+.focus .btn{background:#151A30;border-color:#2B3254;color:#EEF0FB}
+.focus .btn.go{background:#FFC45E;border-color:#FFC45E;color:#1D1A10}
+.focus .btn.pick{border-color:#FFC45E;color:#FFC45E}
+.focus .remind{border:1px solid #2B3254;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.focus .remind ol{margin:0;padding-left:20px;display:grid;gap:3px}
+.timer{font-family:var(--mono);font-size:clamp(64px,18vw,128px);line-height:1;text-align:center;font-weight:500;color:#FFC45E;font-variant-numeric:tabular-nums}
+.intent{font-family:var(--display);font-weight:600;font-size:22px;text-align:center;line-height:1.35}
+.faff{text-align:center;color:#9CD2FF;font-family:var(--display);font-weight:600;font-size:17px}
+.ring{height:5px;background:#1E2440;border-radius:999px;overflow:hidden}
+.ring i{display:block;height:100%;background:linear-gradient(90deg,#FFC45E,#FF8A7B);transition:width 1s linear}
+.focus .x{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px))}
+@media (prefers-reduced-motion:reduce){.ring i{transition:none}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;z-index:60;max-width:calc(100% - 32px);text-align:center}
+</style>
+
+<header class="mast gut">
+  <div class="inner">
+    <div>
+      <p class="hello" id="hello">Hello</p>
+      <h1>Bar Prep Dashboard Demo</h1>
+      <p class="aff" id="aff"></p>
+    </div>
+    <div class="pills">
+      <div class="pill sun"><b id="dExam">--</b><span>days to the bar</span></div>
+      <div class="pill sky"><b id="dPrep">--</b><span>days to full-time prep</span></div>
+      <div class="pill mint"><b id="dApp">--</b><span id="dAppL">days to bar application</span></div>
+    </div>
+  </div>
+</header>
+<nav class="tabs gut" aria-label="Sections"><div class="inner" id="tabs"></div></nav>
+<main class="inner gut" id="main"><div id="banner"></div><div id="view"></div></main>
+<div id="focus" class="focus" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const ICON = {
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  page:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  cards:'<rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 6V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/>',
+  doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  bulb:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>',
+  timer:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/>',
+  heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  scale:'<path d="M12 3v18M5 21h14M5 7h14M7 7l-3 7a3 3 0 0 0 6 0zM17 7l-3 7a3 3 0 0 0 6 0z"/>',
+  flag:'<path d="M4 22V4M4 4h12l-2 4 2 4H4"/>'
+};
+const ic = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+const TABS = [["today","Today","sun"],["recall","Blank page","page"],["cards","Flashcards","cards"],["log","Error log","list"],["essays","Essays & PTs","pen"],["progress","Progress","chart"],["playbook","Playbook","book"],["notes","Study notes","bulb"]];
+
+const EXAM = "2027-07-27", PREP = "2027-05-31", APP_OPEN = "2027-03-01";
+const MBE_SUBJECTS = ["Civil Procedure","Constitutional Law","Contracts","Criminal Law","Evidence","Real Property","Torts"];
+const CA_SUBJECTS = ["Business Associations","Community Property","Professional Responsibility","Remedies","Trusts","Wills and Succession","Performance Test"];
+const SUBJ_VAR = {"Civil Procedure":"--s-civ","Constitutional Law":"--s-con","Contracts":"--s-k","Criminal Law":"--s-crim","Evidence":"--s-ev","Real Property":"--s-rp","Torts":"--s-torts"};
+const sc = s => `var(${SUBJ_VAR[s] || "--s-ca"})`;
+const subj = s => `<span class="subj" style="--c:${sc(s)}">${esc(s)}</span>`;
+// Miss categories from the PASS I MBE review chart, plus second-guessing from the Class 2 slides
+const REASONS = [
+  {r:"Didn't spot the central issue", q:"Did your answer resolve the issue the question was really about? Did you miss a critical fact because you didn't know what it was testing?"},
+  {r:"Didn't know the rule", q:"Could you state the rule before you looked at the options? Did you forget an exception? Have you missed this rule before?"},
+  {r:"Missed an important detail", q:"Did you overlook key words, relationships, amounts, dates, ages, or a state of mind like intended or mistaken?"},
+  {r:"Assumed a fact not present", q:"Did you read something into the facts that wasn't there? Was there an answer that didn't need that inference?"},
+  {r:"Tricked by the facts", q:"Did you swap your instincts or practical sense for the black letter law, or get emotionally involved with the people?"},
+  {r:"Reading comprehension", q:"Did you confuse the parties, lose focus, or need to reread? Would diagramming or underlining have helped?"},
+  {r:"Down to two, picked wrong", q:"You eliminated two. What made the wrong one look right? Is something missing from it, like an element?"},
+  {r:"Second-guessed myself", q:"Did you change a right answer to a wrong one? Track it. If it keeps happening, go with your gut."},
+  {r:"Other", q:"Write what happened in your reflection."}
+];
+const LUCKY = "Lucky guess";
+const MBE_PACE = 108;
+// Approximate MBE questions per area, from the NCBE outline as presented in PASS I Class 2
+const WEIGHT = {
+  "Civil Procedure|Jurisdiction and Venue":5.5,"Civil Procedure|Pretrial Procedures":5.5,"Civil Procedure|Motions":5.5,"Civil Procedure|Law Applied by Federal Courts":2.1,"Civil Procedure|Jury Trials":2.1,"Civil Procedure|Verdicts and Judgments":2.1,"Civil Procedure|Appealability and Review":2.1,
+  "Constitutional Law|Individual Rights":12.5,"Constitutional Law|Judicial Review":4.2,"Constitutional Law|Separation of Powers":4.2,"Constitutional Law|Relations Between Federal and State Governments":4.2,
+  "Criminal Law|Constitutional Protection of Accused Persons":12.5,"Criminal Law|Homicide":3.1,"Criminal Law|Other Crimes":3.1,"Criminal Law|Inchoate Crimes and Parties":3.1,"Criminal Law|General Principles":3.1,
+  "Real Property|Ownership":5,"Real Property|Rights in Land":5,"Real Property|Contracts":5,"Real Property|Mortgages":5,"Real Property|Titles":5,
+  "Torts|Negligence":12.5,"Torts|Intentional Torts":4.2,"Torts|Strict Liability and Products Liability":4.2,"Torts|Other Torts":4.2,
+  "Evidence|Presentation of Evidence":6.5,"Evidence|Relevancy":5,"Evidence|Hearsay":8.5,"Evidence|Privileges":2.5,"Evidence|Writings, Recordings, and Photographs":2
+};
+const AFFIRM = [
+  "Consistency beats intensity. Today counts.",
+  "I don't need to feel ready. I need to show up.",
+  "Pressure is reshaping me, not breaking me.",
+  "Every miss I tag is a point I'm taking back.",
+  "I can miss around 70 MBE questions and still be okay. I don't need perfect.",
+  "The rules I learn today are rules I'll know in July.",
+  "I trust my preparation, and I trust my first instinct.",
+  "Calm mind, clear IRAC.",
+  "A blank page is the starting line, not a verdict.",
+  "My worth is not my score on a practice set.",
+  "Rest is part of the plan, not a break from it.",
+  "I've learned harder things than this before.",
+  "I spot the issue, state the rule, use the facts, and conclude.",
+  "Not every day will be great. Every day can be honest work.",
+  "I belong in that exam room.",
+  "I'm becoming the lawyer my future clients will need.",
+  "Progress over perfection. Sixty-five percent wins.",
+  "One question at a time. One rule at a time.",
+  "Hard sessions now make exam day feel familiar.",
+  "Few people make it this far. I'm one of them.",
+  "I am more capable today than when I started.",
+  "Small reps, every day, add up to a passing score."
+];
+const PROMPTS = [
+  "How will you nurture your PASS attitude today?",
+  "What is the one thing that would make today's study count?",
+  "Which rule did you miss last week that you can now state cold?",
+  "Where are you losing the most points, and what will you do about it today?",
+  "What will you test yourself on before you let yourself reread anything?",
+  "Which subject have you been avoiding? Start there.",
+  "What would future you, sitting in the exam room, want you to practice today?"
+];
+const MBE_ATTACK = ["Read the call of the question first, ignoring the options.","Read the facts with that subject in mind.","Stop. Name the issue and the rule, and IRAC it in your head.","Predict the answer, then read the options and find the one that fits.","Pick the best answer. If an option is missing an element, it is wrong.","Never skip. Mark it, guess intelligently, and move on after about 3 minutes."];
+const IRAC_REMIND = ["Read the call first and write an issues checklist.","Give every issue its own heading so the grader can find it.","State the full rule with its elements.","Use the facts element by element, and argue both sides where the facts allow.","End each issue with a conclusion that answers the call."];
+const PT_REMIND = ["Read the task memo first. Note tone, goal and audience.","Follow the instructions exactly. Format counts.","Outline the issues, the rules from the library, and the relevant facts.","Use every case in the library that applies.","Write [on caption] for a court filing instead of drafting one."];
+const NOTES = [
+  {t:"Test yourself before you review",k:"Retrieval practice",f:"Students who practiced recalling a passage remembered far more of it a week later than students who spent the same time rereading it, even though the rereaders felt more confident.",h:"Open every session with recall, not review. A blank page, a flashcard round, or a set of questions. Rereading your outline comes after you find the gaps.",s:"Roediger and Karpicke, Psychological Science (2006)"},
+  {t:"Space it out",k:"Distributed practice",f:"Across hundreds of studies, the same study time spread over several days beats cramming it into one, and the best gap gets longer as the test gets further away.",h:"Touch every MBE subject at least once a week from now until May, even briefly. The flashcard schedule spaces your missed rules for you.",s:"Cepeda et al., Psychological Bulletin (2006)"},
+  {t:"Mix your subjects",k:"Interleaving",f:"Practice that mixes problem types feels harder and scores worse during practice, but much better on a later test, because you learn to recognize which rule a problem calls for.",h:"Once a subject is covered, stop doing single-subject sets. The MBE mixes all seven, so your practice should too. PASS also recommends mixing question sources.",s:"Rohrer and Taylor, Instructional Science (2007)"},
+  {t:"Highlighting is not studying",k:"What works and what doesn't",f:"A major review rated practice testing and spaced practice as high utility. Highlighting, rereading and summarizing were rated low because they create familiarity without recall.",h:"If a study activity does not make you produce an answer, treat it as preparation for studying, not studying.",s:"Dunlosky et al., Psychological Science in the Public Interest (2013)"},
+  {t:"Your confident mistakes are gold",k:"Hypercorrection",f:"Errors people were sure about are more likely to be fixed after feedback than errors they were unsure about. The surprise makes the correction stick.",h:"When you miss a question you were sure of, tag the reason in the error log and write the rule in your own words. PASS says to review why you got the right ones right too.",s:"Butterfield and Metcalfe, Journal of Experimental Psychology (2001)"},
+  {t:"Decide when and where, in advance",k:"Implementation intentions",f:"Plans phrased as if-then rules (if it is 8 a.m., then I start a 50-minute MBE block at my desk) roughly doubled follow-through compared with general goals across many studies.",h:"Write your next session as an if-then sentence. Consistency comes from removing the daily decision.",s:"Gollwitzer and Sheeran, Advances in Experimental Social Psychology (2006)"},
+  {t:"Put the phone in another room",k:"Attention",f:"In one well-known study, people with their phone on the desk did worse on working memory tests than people whose phone was in another room. Later replications found smaller effects, but moving it costs nothing.",h:"Focus mode starts with this step. Phone out of the room, other tabs closed.",s:"Ward et al., Journal of the Association for Consumer Research (2017)"},
+  {t:"Sleep is when it sticks",k:"Memory consolidation",f:"Sleep after learning strengthens and stabilizes new memories. Cutting sleep to study more trades durable learning for time that mostly does not hold.",h:"Protect a fixed bedtime during prep. Do your hardest recall work earlier in the day and light review at night.",s:"Diekelmann and Born, Nature Reviews Neuroscience (2010)"},
+  {t:"Practice under exam conditions",k:"Transfer-appropriate processing",f:"Memory performs best when practice conditions match test conditions. Timed, closed-book work trains the skill the exam actually measures.",h:"Every week, do at least one fully timed block. One hour per essay, 90 minutes per performance test, 1.8 minutes per MBE question. PASS says not to worry much about MBE timing until bar month.",s:"Morris, Bransford and Franks, Journal of Verbal Learning and Verbal Behavior (1977)"},
+  {t:"Ask why the rule exists",k:"Elaborative interrogation",f:"Explaining why a fact is true improves memory for it, especially when you already know something about the topic. The Dunlosky review rated it moderately useful.",h:"On the blank page, after each element, write one line on why the law requires it. Rules with reasons are easier to rebuild under pressure.",s:"Dunlosky et al. (2013)"},
+  {t:"Work on what you can't do yet",k:"Deliberate practice",f:"Improvement comes from focused practice on specific weaknesses with immediate feedback, not from repeating what already feels comfortable.",h:"Let the points-at-stake list pick your next set. Your weakest high-weight areas get the most time.",s:"Ericsson, Krampe and Tesch-Romer, Psychological Review (1993)"},
+  {t:"Move your body",k:"Exercise",f:"A meta-analysis of single exercise sessions found a small but reliable boost in cognitive performance afterward, and regular exercise supports sleep and mood over a long prep period.",h:"Schedule workouts like study blocks. A short walk between morning and afternoon sessions is a cheap reset.",s:"Chang et al., Brain Research (2012)"}
+];
+// Starter recall topics from PASS I crimes and evidence exercises (rules paraphrased)
+const STARTERS = [
+  {name:"Burglary", subject:"Criminal Law", list:["Breaking, actual or constructive (fraud, threat or trick counts)","Entering","The dwelling of another (a hotel room someone sleeps in qualifies)","At night (many modern statutes drop this element)","Intent to commit a felony inside, formed at the time of entry"]},
+  {name:"Robbery", subject:"Criminal Law", list:["Trespassory taking","Carrying away","Personal property of another","From the person or presence of the victim (the immediate vicinity counts)","Intent to permanently deprive (an honest claim of right negates it)","Accomplished by force or by putting in fear"]},
+  {name:"Murder and malice", subject:"Criminal Law", list:["Homicide is the unlawful killing of a human being, caused actually and proximately by D","Malice way 1. Intent to kill","Malice way 2. Intent to inflict great bodily harm","Malice way 3. Reckless indifference to human life (depraved heart)","Malice way 4. Felony murder (a foreseeable death during an inherently dangerous felony)","First degree. Premeditation and deliberation, or a listed felony","Second degree. Malice without premeditation and no manslaughter reduction","Voluntary manslaughter. Heat of passion from adequate provocation, or imperfect self-defense","Involuntary manslaughter. Criminal negligence, or misdemeanor manslaughter","Felony murder limits. Ends at a place of safety. Under the redline view, no liability when a co-felon is killed by the victim or police"]},
+  {name:"Voluntary manslaughter", subject:"Criminal Law", list:["A killing that would be murder but for adequate provocation","The provocation would inflame a reasonable person","D was actually provoked","Not enough time for a reasonable person to cool off","D did not actually cool off","Imperfect self-defense also reduces murder to voluntary manslaughter"]},
+  {name:"Intoxication defenses", subject:"Criminal Law", list:["Voluntary intoxication is a defense only to specific intent crimes, by negating the intent","It is no defense to general intent, malice or strict liability crimes","It is no defense when D drank to build courage for a crime already planned","Involuntary intoxication (unknowing or under duress) is treated like mental illness and can be a defense to all crimes"]},
+  {name:"Miranda", subject:"Criminal Law", list:["Applies to custodial interrogation","Custody. Not free to leave","Interrogation. Words or conduct police should know are likely to elicit a response","D must know he is talking to a government agent (no Miranda for an undercover informant)","Warnings. Right to remain silent, anything said can be used, right to a lawyer, one appointed if needed","Remedy. Exclusionary rule, including fruit of the poisonous tree"]},
+  {name:"Sixth Amendment right to counsel", subject:"Criminal Law", list:["Attaches once formal proceedings begin (charge, arraignment, indictment)","Covers post-charge lineups and show-ups, not photo arrays or physical samples","Police and their informants cannot deliberately elicit statements about the charged crime without counsel","Retained counsel can be substituted if the interests of justice allow (conflicts, timing, fairness to co-defendants)","Remedy. Exclusion of the statement or identification"]},
+  {name:"Hearsay and prior identification", subject:"Evidence", list:["Hearsay is an out-of-court statement offered for the truth of the matter asserted","Inadmissible unless an exemption or exception applies","A prior identification of a person, made after perceiving them, is admissible if the declarant testifies and is subject to cross","Also consider present sense impression and excited utterance"]}
+];
+const ADMIT = [
+  {id:"register", t:"Register as a law student with the Committee of Bar Examiners", d:"One-time registration, usually done in 1L. $155. If you aren't sure you did it, call the State Bar at (415) 538-2000."},
+  {id:"mpre", t:"Pass the MPRE", d:"California requires a score of 86. Offered at least twice a year, usually August and November. $185 as of 2026. Don't wait for the August right after the July bar, since it usually falls the weekend after."},
+  {id:"moral", t:"File the Moral Character Application", d:"$900. Needs several references, including at least one bar member, plus past addresses, jobs, and Live Scan fingerprints. Submit at least six months before results. July results come out in mid-November, so mid-May 2027 is the latest."},
+  {id:"accom", t:"Petition for testing accommodations, if you need them", d:"Covered in PASS I Class 2. Plan it alongside the bar application timeline."},
+  {id:"app", t:"File the July 2027 bar exam application", d:"Opens March 1. $878, plus $153 to use a laptop. Late fees start after about a month and the application closes after about three months. Apply early to get your preferred test center."}
+];
+const PREV_REASONS = {"Knew it, misapplied it":"Didn't spot the central issue","Misread the facts or call":"Missed an important detail","Fell for a distractor":"Down to two, picked wrong","Rushed or guessed":"Other"};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const parseDay = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = parseDay(s); d.setDate(d.getDate()+n); return ymd(d); };
+const daysBetween = (a,b) => Math.round((parseDay(b)-parseDay(a))/86400000);
+const usDate = s => { if (!s) return today(); if (/^\d{4}-/.test(s)) return s.slice(0,10); const [m,d,y] = s.split("/").map(Number); return `${y}-${pad(m)}-${pad(d)}`; };
+const isMiss = q => !!(q.miss || (q.ans && q.correct && q.ans!==q.correct));
+const pct = (a,b) => b ? Math.round(100*a/b) : 0;
+const tone = p => p >= 65 ? "good" : p >= 50 ? "warn" : "bad";
+const fmtDay = s => parseDay(s).toLocaleDateString(undefined,{month:"short",day:"numeric"});
+const mmss = sec => `${Math.floor(sec/60)}:${pad(Math.round(sec%60))}`;
+const weekOf = s => { const d = parseDay(s); const day = (d.getDay()+6)%7; d.setDate(d.getDate()-day); return ymd(d); };
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const dayNo = () => daysBetween("2026-01-01", today());
+const reasonOf = k => { const r = (S.tags[k]||{}).reason || ""; return PREV_REASONS[r] || r; };
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>t.hidden=true,2800); }
+
+const S = { sets:{}, tags:{}, cards:{}, sessions:{}, recall:{}, days:{}, essays:{}, reflections:{}, admit:{}, outlines:{}, settings:{ weekGoal:5, newPerDay:15, mbeGoal:65 } };
+let db = null, dbState = "connecting", ready = {}, route = "today";
+const ui = { cardFilter:"All", cardRevealed:false, cardCurrent:null, logFilter:"All", logScope:"misses", logUntagged:false, helpReason:false,
+  topic:null, recallStage:"write", recallRound:1, recallGot:{}, recallTextSaved:"", newTopic:false, editList:false, olKey:null, olOpen:{}, rdKey:null, rdPage:null, rdOpen:{}, logForm:false, essayForm:false, assess:null, reflect:null };
+const COLS = ["sets","tags","cards","sessions","recall","days","essays","reflections","admit","outlines","settings"];
+const DEMO = true;
+const DEMO_RAW = {"sets":[{"id":"demo-set1","name":"Sample mixed set 1","source":"Sample","off":-34,"seconds":2962,"questions":[{"q":1077,"subject":"Torts","subtopic":"Negligence","ans":"C","correct":"D","cue":"What must a plaintiff prove in negligence?","note":"Duty, breach, actual cause, proximate cause, and damages."},{"q":1542,"subject":"Real Property","subtopic":"Ownership","ans":"B","correct":"B"},{"q":2155,"subject":"Evidence","subtopic":"Hearsay","ans":"C","correct":"A"},{"q":543,"subject":"Evidence","subtopic":"Hearsay","ans":"B","correct":"A","cue":"Define hearsay.","note":"An out-of-court statement offered to prove the truth of the matter asserted. Inadmissible unless an exclusion or exception applies."},{"q":1100,"subject":"Evidence","subtopic":"Hearsay","ans":"D","correct":"D"},{"q":648,"subject":"Real Property","subtopic":"Mortgages","ans":"C","correct":"C"},{"q":1340,"subject":"Constitutional Law","subtopic":"Individual Rights","ans":"A","correct":"D","cue":"What test applies to a content-based restriction on speech?","note":"Strict scrutiny. The law must be necessary to a compelling interest and narrowly tailored."},{"q":742,"subject":"Evidence","subtopic":"Presentation of Evidence","ans":"A","correct":"A"},{"q":369,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"C","correct":"C"},{"q":514,"subject":"Contracts","subtopic":"Remedies","ans":"A","correct":"A"},{"q":1113,"subject":"Criminal Law","subtopic":"Inchoate Crimes and Parties","ans":"D","correct":"D"},{"q":1574,"subject":"Contracts","subtopic":"Remedies","ans":"C","correct":"C"},{"q":851,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"A","correct":"D","cue":"When are Miranda warnings required?","note":"Before custodial interrogation by someone the suspect knows is a police officer."},{"q":2294,"subject":"Torts","subtopic":"Negligence","ans":"A","correct":"A"},{"q":836,"subject":"Real Property","subtopic":"Titles","ans":"C","correct":"D","cue":"Race-notice: when does a later purchaser win?","note":"Only if she takes without notice of the earlier interest AND records first."},{"q":1171,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"D","correct":"D"},{"q":1163,"subject":"Civil Procedure","subtopic":"Jurisdiction and Venue","ans":"A","correct":"C","cue":"Requirements for diversity jurisdiction?","note":"Complete diversity between all plaintiffs and all defendants, and more than $75,000 in controversy."},{"q":899,"subject":"Contracts","subtopic":"Remedies","ans":"A","correct":"A"},{"q":1647,"subject":"Evidence","subtopic":"Privileges","ans":"C","correct":"C"},{"q":669,"subject":"Contracts","subtopic":"Performance and Breach","ans":"D","correct":"D"},{"q":2156,"subject":"Evidence","subtopic":"Relevancy","ans":"C","correct":"A","cue":"Can character evidence prove conduct on a particular occasion?","note":"Generally no. Exceptions include a criminal defendant offering a pertinent trait, and character for truthfulness of a witness."},{"q":931,"subject":"Torts","subtopic":"Intentional Torts","ans":"A","correct":"B","cue":"Elements of battery?","note":"An intentional harmful or offensive contact with the plaintiff's person."},{"q":2568,"subject":"Evidence","subtopic":"Relevancy","ans":"B","correct":"B"},{"q":494,"subject":"Evidence","subtopic":"Privileges","ans":"B","correct":"D"},{"q":1276,"subject":"Torts","subtopic":"Negligence","ans":"C","correct":"A"}]},{"id":"demo-set2","name":"Sample mixed set 2","source":"Sample","off":-24,"seconds":2673,"questions":[{"q":2311,"subject":"Criminal Law","subtopic":"Other Crimes","ans":"C","correct":"D"},{"q":2263,"subject":"Constitutional Law","subtopic":"Judicial Review","ans":"A","correct":"A"},{"q":1135,"subject":"Real Property","subtopic":"Titles","ans":"C","correct":"C"},{"q":2125,"subject":"Civil Procedure","subtopic":"Jurisdiction and Venue","ans":"A","correct":"A"},{"q":1810,"subject":"Evidence","subtopic":"Hearsay","ans":"A","correct":"A"},{"q":2144,"subject":"Real Property","subtopic":"Mortgages","ans":"A","correct":"A"},{"q":1764,"subject":"Constitutional Law","subtopic":"Judicial Review","ans":"C","correct":"A"},{"q":606,"subject":"Civil Procedure","subtopic":"Pretrial Procedures","ans":"A","correct":"A"},{"q":596,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"C","correct":"C"},{"q":830,"subject":"Torts","subtopic":"Other Torts","ans":"D","correct":"C"},{"q":2238,"subject":"Contracts","subtopic":"Performance and Breach","ans":"C","correct":"C"},{"q":359,"subject":"Torts","subtopic":"Other Torts","ans":"D","correct":"A"},{"q":595,"subject":"Real Property","subtopic":"Ownership","ans":"C","correct":"D"},{"q":1652,"subject":"Torts","subtopic":"Negligence","ans":"C","correct":"A"},{"q":2516,"subject":"Criminal Law","subtopic":"Inchoate Crimes and Parties","ans":"D","correct":"D"},{"q":391,"subject":"Torts","subtopic":"Negligence","ans":"B","correct":"C"},{"q":2291,"subject":"Evidence","subtopic":"Hearsay","ans":"C","correct":"D"},{"q":1129,"subject":"Constitutional Law","subtopic":"Individual Rights","ans":"C","correct":"C"},{"q":2341,"subject":"Real Property","subtopic":"Mortgages","ans":"B","correct":"C"},{"q":2064,"subject":"Evidence","subtopic":"Presentation of Evidence","ans":"A","correct":"D"},{"q":1596,"subject":"Contracts","subtopic":"Formation","ans":"B","correct":"B"},{"q":466,"subject":"Evidence","subtopic":"Relevancy","ans":"B","correct":"B"},{"q":2145,"subject":"Civil Procedure","subtopic":"Jurisdiction and Venue","ans":"A","correct":"C"},{"q":2429,"subject":"Criminal Law","subtopic":"Other Crimes","ans":"C","correct":"B"},{"q":428,"subject":"Criminal Law","subtopic":"Other Crimes","ans":"D","correct":"D"}]},{"id":"demo-set3","name":"Sample mixed set 3","source":"Sample","off":-14,"seconds":2808,"questions":[{"q":1565,"subject":"Real Property","subtopic":"Titles","ans":"C","correct":"C"},{"q":2162,"subject":"Civil Procedure","subtopic":"Motions","ans":"C","correct":"A"},{"q":877,"subject":"Evidence","subtopic":"Hearsay","ans":"C","correct":"C"},{"q":2492,"subject":"Contracts","subtopic":"Formation","ans":"A","correct":"A"},{"q":1111,"subject":"Civil Procedure","subtopic":"Motions","ans":"D","correct":"C"},{"q":344,"subject":"Evidence","subtopic":"Privileges","ans":"C","correct":"C"},{"q":1415,"subject":"Contracts","subtopic":"Performance and Breach","ans":"A","correct":"A"},{"q":1217,"subject":"Contracts","subtopic":"Performance and Breach","ans":"B","correct":"B"},{"q":2157,"subject":"Torts","subtopic":"Other Torts","ans":"D","correct":"D"},{"q":2358,"subject":"Evidence","subtopic":"Hearsay","ans":"D","correct":"D"},{"q":1139,"subject":"Contracts","subtopic":"Performance and Breach","ans":"D","correct":"D"},{"q":1898,"subject":"Torts","subtopic":"Negligence","ans":"B","correct":"B"},{"q":364,"subject":"Torts","subtopic":"Strict Liability and Products Liability","ans":"C","correct":"C"},{"q":2554,"subject":"Constitutional Law","subtopic":"Individual Rights","ans":"A","correct":"A"},{"q":562,"subject":"Criminal Law","subtopic":"Other Crimes","ans":"A","correct":"D"},{"q":875,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"B","correct":"B"},{"q":652,"subject":"Criminal Law","subtopic":"Homicide","ans":"B","correct":"D"},{"q":1488,"subject":"Contracts","subtopic":"Formation","ans":"D","correct":"D"},{"q":2593,"subject":"Contracts","subtopic":"Remedies","ans":"B","correct":"B"},{"q":1152,"subject":"Constitutional Law","subtopic":"Separation of Powers","ans":"C","correct":"D"},{"q":1123,"subject":"Constitutional Law","subtopic":"Judicial Review","ans":"C","correct":"C"},{"q":413,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"A","correct":"A"},{"q":799,"subject":"Real Property","subtopic":"Titles","ans":"D","correct":"D"},{"q":2506,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"B","correct":"B"},{"q":2238,"subject":"Criminal Law","subtopic":"Inchoate Crimes and Parties","ans":"D","correct":"D"}]},{"id":"demo-set4","name":"Sample mixed set 4","source":"Sample","off":-5,"seconds":3049,"questions":[{"q":744,"subject":"Constitutional Law","subtopic":"Relations Between Federal and State Governments","ans":"D","correct":"D"},{"q":393,"subject":"Evidence","subtopic":"Privileges","ans":"B","correct":"A"},{"q":1463,"subject":"Torts","subtopic":"Intentional Torts","ans":"B","correct":"B"},{"q":729,"subject":"Constitutional Law","subtopic":"Separation of Powers","ans":"B","correct":"B"},{"q":2472,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"D","correct":"C"},{"q":2468,"subject":"Criminal Law","subtopic":"Constitutional Protection of Accused Persons","ans":"D","correct":"D"},{"q":1194,"subject":"Real Property","subtopic":"Mortgages","ans":"D","correct":"B"},{"q":1723,"subject":"Real Property","subtopic":"Mortgages","ans":"B","correct":"B"},{"q":1193,"subject":"Evidence","subtopic":"Presentation of Evidence","ans":"A","correct":"C"},{"q":1280,"subject":"Contracts","subtopic":"Formation","ans":"A","correct":"A"},{"q":2080,"subject":"Evidence","subtopic":"Hearsay","ans":"C","correct":"C"},{"q":372,"subject":"Contracts","subtopic":"Performance and Breach","ans":"B","correct":"B"},{"q":772,"subject":"Torts","subtopic":"Intentional Torts","ans":"B","correct":"C"},{"q":1074,"subject":"Civil Procedure","subtopic":"Motions","ans":"C","correct":"C"},{"q":453,"subject":"Contracts","subtopic":"Formation","ans":"D","correct":"D"},{"q":1055,"subject":"Contracts","subtopic":"Remedies","ans":"D","correct":"D"},{"q":690,"subject":"Torts","subtopic":"Intentional Torts","ans":"C","correct":"B"},{"q":617,"subject":"Real Property","subtopic":"Titles","ans":"C","correct":"B"},{"q":2046,"subject":"Contracts","subtopic":"Formation","ans":"C","correct":"C"},{"q":1828,"subject":"Real Property","subtopic":"Rights in Land","ans":"D","correct":"D"},{"q":2159,"subject":"Torts","subtopic":"Negligence","ans":"B","correct":"B"},{"q":976,"subject":"Constitutional Law","subtopic":"Separation of Powers","ans":"C","correct":"D"},{"q":1956,"subject":"Torts","subtopic":"Negligence","ans":"D","correct":"C"},{"q":1444,"subject":"Real Property","subtopic":"Mortgages","ans":"B","correct":"C"},{"q":1651,"subject":"Torts","subtopic":"Intentional Torts","ans":"D","correct":"D"}]}],"sessions":[{"off":-37,"minutes":120,"type":"Flashcards","intention":"","outcome":""},{"off":-36,"minutes":50,"type":"Blank page recall","intention":"","outcome":""},{"off":-35,"minutes":25,"type":"Blank page recall","intention":"","outcome":""},{"off":-32,"minutes":50,"type":"Blank page recall","intention":"","outcome":""},{"off":-31,"minutes":120,"type":"Timed essay","intention":"","outcome":""},{"off":-30,"minutes":90,"type":"MBE questions","intention":"","outcome":""},{"off":-29,"minutes":60,"type":"Flashcards","intention":"","outcome":""},{"off":-25,"minutes":90,"type":"MBE questions","intention":"","outcome":""},{"off":-23,"minutes":60,"type":"Outline review","intention":"","outcome":""},{"off":-22,"minutes":45,"type":"Timed essay","intention":"","outcome":""},{"off":-21,"minutes":50,"type":"Blank page recall","intention":"","outcome":""},{"off":-20,"minutes":50,"type":"Outline review","intention":"","outcome":""},{"off":-19,"minutes":60,"type":"Outline review","intention":"","outcome":""},{"off":-18,"minutes":25,"type":"Timed essay","intention":"","outcome":""},{"off":-16,"minutes":90,"type":"MBE questions","intention":"","outcome":""},{"off":-15,"minutes":45,"type":"Timed essay","intention":"","outcome":""},{"off":-14,"minutes":45,"type":"Timed essay","intention":"","outcome":""},{"off":-13,"minutes":90,"type":"MBE questions","intention":"","outcome":""},{"off":-12,"minutes":60,"type":"Timed essay","intention":"","outcome":""},{"off":-11,"minutes":60,"type":"Outline review","intention":"","outcome":""},{"off":-10,"minutes":90,"type":"Blank page recall","intention":"","outcome":""},{"off":-9,"minutes":50,"type":"Outline review","intention":"","outcome":""},{"off":-5,"minutes":150,"type":"Flashcards","intention":"","outcome":""},{"off":-4,"minutes":120,"type":"Flashcards","intention":"","outcome":""},{"off":-3,"minutes":120,"type":"Timed essay","intention":"","outcome":""},{"off":-2,"minutes":50,"type":"Timed essay","intention":"","outcome":""},{"off":-1,"minutes":120,"type":"Blank page recall","intention":"","outcome":""},{"off":0,"minutes":45,"type":"Timed essay","intention":"","outcome":""}],"recall":[{"id":"demo-neg","name":"Negligence","subject":"Torts","checklist":["Duty: reasonable person standard","Special duties: children, professionals, landowners","Breach: Hand formula and custom","Res ipsa loquitur","Negligence per se","Actual cause: but-for and substantial factor","Proximate cause: foreseeability, superseding causes","Damages and eggshell plaintiff","Defenses: comparative and contributory negligence, assumption of risk"],"attempts":[{"off":-9,"got":5,"total":9,"round":1},{"off":-9,"got":8,"total":9,"round":2},{"off":-2,"got":9,"total":9,"round":1}],"dueOff":5,"lastGap":7},{"id":"demo-hs","name":"Hearsay exceptions: declarant unavailable","subject":"Evidence","checklist":["Definition of unavailability","Former testimony","Dying declaration","Statement against interest","Statement of personal or family history","Forfeiture by wrongdoing"],"attempts":[{"off":-1,"got":4,"total":6,"round":1}],"dueOff":0,"lastGap":1}],"essays":[{"id":"demo-e1","name":"Sample essay: Torts and Remedies","subjects":["Torts"],"kind":"essay","stage":"Self-assessed","order":1},{"id":"demo-e2","name":"Sample essay: Evidence","subjects":["Evidence"],"kind":"essay","stage":"Written, timed","order":2},{"id":"demo-pt","name":"Sample performance test","subjects":["Performance Test"],"kind":"PT","stage":"Not started","order":3}]};
+function demoData(){
+  const t = today(), at = off => addDays(t, off), out = {sets:{}, sessions:{}, recall:{}, essays:{}, cards:{}};
+  DEMO_RAW.sets.forEach(s => { const d = at(s.off); out.sets[s.id] = {...s, date:d, questions:s.questions.map(q => ({...q, date:d}))}; });
+  DEMO_RAW.sessions.forEach((s,i) => { out.sessions["demo-s"+i] = {...s, date:at(s.off), planned:s.minutes}; });
+  DEMO_RAW.recall.forEach(r => { out.recall[r.id] = {name:r.name, subject:r.subject, checklist:r.checklist, attempts:r.attempts.map(a=>({...a, date:at(a.off)})), due:at(r.dueOff), lastGap:r.lastGap}; });
+  DEMO_RAW.essays.forEach(e => { out.essays[e.id] = {...e, added:t}; });
+  return out;
+}
+async function connect(){
+  if (DEMO){ Object.assign(S, demoData()); dbState = "demo"; COLS.forEach(c => ready[c] = true); render(); return; }
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch(e){ db = null; }
+  if (!db){ dbState = "off"; render(); return; }
+  dbState = "on";
+  COLS.forEach(c => db.collection(c).onSnapshot(snap => {
+      if (c === "settings"){ const d = snap.docs.find(x=>x.id==="main"); if (d) Object.assign(S.settings, d.data()); }
+      else { const o = {}; snap.docs.forEach(d => o[d.id] = d.data()); S[c] = o; }
+      ready[c] = true; schedule();
+    }, err => { console.warn(c, err); if (err.code==="revoked"){ dbState="off"; schedule(); } }));
+}
+async function put(col,id,data){
+  if (col==="settings") Object.assign(S.settings,data); else S[col][id] = data;
+  schedule(); if (!db) return;
+  try { await db.collection(col).doc(id).set(data); }
+  catch(e){ console.warn(e); toast(e.code==="quota_exceeded" ? "Storage is full. Download a backup and clear old data." : "That didn't save. Check your connection and try again."); }
+}
+async function del(col,id){ delete S[col][id]; schedule(); if (db) try { await db.collection(col).doc(id).delete(); } catch(e){ toast("That didn't delete. Try again."); } }
+
+function allQuestions(){ const out = []; Object.values(S.sets).forEach(s => (s.questions||[]).forEach(q => out.push({...q, set:s, key:`${s.id}_${q.q}`, day: usDate(q.date||s.date)}))); return out; }
+function setTotals(s){ if (s.questions && s.questions.length && !s.summaryOnly) return {total:s.questions.length, correct:s.questions.filter(q=>q.ans===q.correct).length}; return {total:s.total||0, correct:s.correct||0}; }
+function subtopicStats(){
+  const m = {};
+  allQuestions().forEach(q => { if (q.set.summaryOnly) return; const k = q.subject+"|"+q.subtopic; const r = m[k] || (m[k] = {subject:q.subject, subtopic:q.subtopic, n:0, right:0}); r.n++; if (q.ans===q.correct) r.right++; });
+  return Object.values(m).map(r => { const p = pct(r.right,r.n), w = WEIGHT[r.subject+"|"+r.subtopic] || 3; return {...r, p, w, lose: +(w*(1-p/100)).toFixed(1)}; });
+}
+function subjectStats(){
+  const m = {};
+  Object.values(S.sets).forEach(s => { const t = setTotals(s);
+    if (s.questions && !s.summaryOnly) s.questions.forEach(q => { const r = m[q.subject] || (m[q.subject]={n:0,right:0}); r.n++; if (q.ans===q.correct) r.right++; });
+    else if (s.subject){ const r = m[s.subject] || (m[s.subject]={n:0,right:0}); r.n += t.total; r.right += t.correct; } });
+  return m;
+}
+function totalQs(){ return Object.values(S.sets).reduce((a,s)=>a+setTotals(s).total,0); }
+function cardList(){ return allQuestions().filter(q => q.note && isMiss(q)).map(q => ({key:q.key, cue:q.cue || `${q.subtopic}. State the rule you missed.`, note:q.note, q, st:S.cards[q.key]})); }
+function dueCards(filter){
+  const t = today(), list = cardList().filter(c => filter==="All" || c.q.subject===filter);
+  const due = list.filter(c => c.st && c.st.due <= t);
+  const newDoneToday = Object.values(S.cards).filter(c => c.introduced === t).length;
+  const fresh = list.filter(c => !c.st).slice(0, Math.max(0, (S.settings.newPerDay||15) - newDoneToday));
+  return {due, fresh, all:list};
+}
+function sessionsByDay(){ const m = {}; Object.values(S.sessions).forEach(s => { m[s.date] = (m[s.date]||0) + (s.minutes||0); }); return m; }
+function reviewedToday(){ const t = today(); return Object.values(S.cards).filter(c => c.last === t).length; }
+
+let raf = 0;
+function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); }
+const loading = () => dbState==="connecting" || (dbState==="on" && !ready.sets);
+function render(){
+  const t = today(), h = new Date().getHours();
+  $("#hello").textContent = `${h<12?"Good morning":h<18?"Good afternoon":"Good evening"}`;
+  $("#aff").textContent = AFFIRM[dayNo() % AFFIRM.length];
+  $("#dExam").textContent = Math.max(0, daysBetween(t, EXAM));
+  const dp = daysBetween(t, PREP); $("#dPrep").textContent = dp > 0 ? dp : "Now";
+  const da = daysBetween(t, APP_OPEN);
+  if (da > 0){ $("#dApp").textContent = da; $("#dAppL").textContent = "days until the bar application opens"; }
+  else { $("#dApp").textContent = (S.admit.app||{}).done ? "Filed" : "Open"; $("#dAppL").textContent = "July bar application"; }
+  $("#tabs").innerHTML = TABS.map(([id,l,i]) => `<a href="#${id}" aria-current="${id===route?"page":"false"}">${ic(i)}${l}</a>`).join("");
+  $("#banner").innerHTML = dbState==="demo" ? `<p class="banner">This is a demo filled with sample data. Click around freely. Nothing you do here is saved, and it resets when you reload.</p>` : dbState==="off" ? `<p class="banner">Saving is off in this view, so nothing you do here will be kept. Open the page from your Claude account to save your work.</p>` : "";
+  const keep = {}; let focusId = null, sel = null;
+  document.querySelectorAll("#view [id]").forEach(el => { if ("value" in el && el.type!=="checkbox" && el.type!=="button") keep[el.id] = el.value; });
+  const ae = document.activeElement;
+  if (ae && ae.id && $("#view").contains(ae)){ focusId = ae.id; try { sel = [ae.selectionStart, ae.selectionEnd]; } catch(e){} }
+  const v = {today:vToday, recall:vRecall, outlines:vOutlines, cards:vCards, log:vLog, essays:vEssays, progress:vProgress, playbook:vPlaybook, notes:vNotes}[route] || vToday;
+  const html = v(), oldF = route==="outlines" ? $("#view .pdfwrap[data-k]") : null;
+  if (oldF && oldF.dataset.k === ui.rdKey){
+    // Keep the PDF frame alive so it doesn't reload on every save; swap only the toolbar and contents.
+    const tmp = document.createElement("div"); tmp.innerHTML = html;
+    if (tmp.querySelector(".pdfwrap[data-k]")) ["rd-bar","toc-side"].forEach(c => { const a = $("#view ."+c), b = tmp.querySelector("."+c); if (a && b) a.replaceWith(b); });
+    else $("#view").innerHTML = html;
+  } else $("#view").innerHTML = html;
+  Object.entries(keep).forEach(([id,val]) => { const el = document.getElementById(id); if (el && !ui.clear?.has(id)) el.value = val; });
+  ui.clear = null;
+  if (route==="outlines" && ui.rdKey) mountReader();
+  if (focusId){ const el = document.getElementById(focusId); if (el){ el.focus(); if (sel && sel[0]!=null) try{ el.setSelectionRange(sel[0],sel[1]); }catch(e){} } }
+}
+const clearOnNext = (...ids) => { ui.clear = new Set(ids); };
+
+// ---------- Today ----------
+function vToday(){
+  const t = today(), prompt = PROMPTS[dayNo() % PROMPTS.length];
+  const day = S.days[t] || {checks:{}}; const ch = day.checks || {};
+  const {due, fresh} = dueCards("All");
+  const recallDone = Object.values(S.recall).some(r => (r.attempts||[]).some(a => a.date===t));
+  const practiceDone = Object.values(S.sessions).some(s => s.date===t && ["MBE questions","Timed essay","Performance test"].includes(s.type));
+  const checks = { cards: !!(ch.cards || (reviewedToday()>0 && due.length+fresh.length===0)), recall: !!(ch.recall || recallDone), practice: !!(ch.practice || practiceDone) };
+  const nDone = checks.cards+checks.recall+checks.practice;
+  const top = subtopicStats().filter(r=>r.n>=3).sort((a,b)=>b.lose-a.lose)[0];
+  const byDay = sessionsByDay(), ws = weekOf(t); let wkDays=0, wkMin=0;
+  for (let i=0;i<7;i++){ const d = addDays(ws,i); if (byDay[d]){ wkDays++; wkMin+=byDay[d]; } }
+  const note = NOTES[Math.floor(daysBetween("2026-01-05", t)/7) % NOTES.length];
+  const task = (k, color, icon, title, desc, action) => `<div class="task ${checks[k]?"done":""}">
+      <button class="tick ${checks[k]?"on":""}" data-act="tick" data-k="${k}" aria-pressed="${checks[k]}" aria-label="Mark ${esc(title)} done">${checks[k]?"✓":""}</button>
+      <span class="badge ${color}">${ic(icon)}</span>
+      <div class="stack" style="gap:1px;flex:1;min-width:0"><span class="t">${title}</span><span class="muted small">${desc}</span></div>${action}</div>`;
+  const recent = Object.entries(S.days).filter(([,v])=>v.feel1||v.feel2).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,5);
+  const nextAdmit = ADMIT.find(a => !(S.admit[a.id]||{}).done);
+  return `<div class="stack" style="gap:16px">
+  <section class="hero">
+    <div class="focus-cta">
+      <div class="stack" style="gap:8px"><span class="label" style="color:#fff;opacity:.85">Today's question</span><p class="prompt">${esc(prompt)}</p></div>
+      <button class="btn sun" data-act="focus">${ic("timer")}Start a focus session</button>
+    </div>
+    <div class="panel">
+      <header><h2>Today's three</h2><span class="chip ${nDone===3?"good":"acc"}">${nDone} of 3 done</span></header>
+      <div class="three">
+        ${task("cards","grape","cards","Clear your flashcards", loading()?"Loading":`${due.length} due, ${fresh.length} new from your misses`, `<a class="btn sm" href="#cards">Open</a>`)}
+        ${(()=>{ const nb = nextBlankPage();
+          return task("recall","sky","page","One blank page", nb ? (nb.kind==="due" ? `Due again: ${esc(nb.name)}` : `Next up: ${esc(nb.name)} · ${esc(nb.label)}`) : top?`Suggested: ${esc(top.subtopic)}`:"Write a topic from memory, then check it",
+            nb ? (nb.kind==="due" ? `<button class="btn sm" data-act="pickTopicGo" data-id="${nb.id}">Start</button>` : `<button class="btn sm" data-act="olStart" data-k="${nb.key}" data-id="${nb.id}">Start</button>`) : `<a class="btn sm" href="#recall">Open</a>`); })()}
+        ${task("practice","coral","target","One timed block", "MBE set, essay or PT, under the clock", `<button class="btn sm" data-act="focus" data-type="MBE questions">Start</button>`)}
+      </div>
+      ${nDone===3?`<p class="small" style="margin-top:10px;color:var(--good);font-weight:700">All three done. That's what consistency looks like.</p>`:""}
+    </div>
+  </section>
+  <section class="grid g2">
+    <div class="tint sun stack">
+      <div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="badge sun">${ic("heart")}</span><div><h2>PASS attitude check-in</h2><p class="muted small">From PASS I. Name how you feel, then decide how you'll take care of it today.</p></div></div>
+      <div class="field"><span>Today I am feeling ___ and ___ about bar prep</span>
+        <div class="feel"><input type="text" id="feel1" value="${esc(day.feel1||"")}" placeholder="e.g. focused" maxlength="30" aria-label="First feeling"><input type="text" id="feel2" value="${esc(day.feel2||"")}" placeholder="e.g. nervous" maxlength="30" aria-label="Second feeling"></div></div>
+      <label class="field"><span>How will you nurture your PASS attitude today?</span><input type="text" id="nurture" value="${esc(day.nurture||"")}" placeholder="e.g. Gym at 6, then one blank page before dinner"></label>
+      <div class="row"><button class="btn primary sm" data-act="saveFeel">Save check-in</button>${day.feel1?`<span class="small muted">Saved for today</span>`:""}</div>
+      ${recent.length?`<hr class="rule"><div class="mood-log">${recent.map(([d,v])=>`<div><span class="num">${fmtDay(d)}</span><span>${esc(v.feel1||"")}${v.feel2?` and ${esc(v.feel2)}`:""}${v.nurture?`<span class="muted"> · ${esc(v.nurture)}</span>`:""}</span></div>`).join("")}</div>`:""}
+    </div>
+    ${consistencyPanel()}
+  </section>
+  <section class="grid g2">
+    <div class="panel"><header><h2>Where you're losing points</h2><a class="btn ghost sm" href="#progress">Full map</a></header>${loseList(4)}</div>
+    <div class="stack" style="gap:16px">
+      <div class="tint grape stack" style="gap:8px">
+        <div class="row"><span class="label">This week's study note</span><span class="spacer"></span><a class="btn ghost sm" href="#notes">All notes</a></div>
+        <h3>${esc(note.t)}</h3><p>${esc(note.f)}</p><p><strong>Use it.</strong> ${esc(note.h)}</p><p class="muted small">${esc(note.s)}</p>
+      </div>
+      ${nextAdmit?`<div class="tint mint row" style="flex-wrap:nowrap;align-items:flex-start"><span class="badge mint">${ic("flag")}</span><div class="stack" style="gap:4px;min-width:0"><span class="label">Next admissions step</span><strong>${esc(nextAdmit.t)}</strong><span class="small muted">${esc(nextAdmit.d)}</span><a class="btn sm" href="#playbook" style="align-self:flex-start">Open checklist</a></div></div>`:""}
+    </div>
+  </section></div>`;
+}
+// A study day is any day with a focus session, logged study time, a flashcard review, a blank page or a practice set.
+function activityByDay(){
+  const m = {}; const add = (d,k,v=1) => { if (!d) return; const r = m[d] || (m[d] = {min:0, sessions:[], cards:0, recall:0, sets:[]}); if (k==="min") r.min += v; else if (k==="sessions"||k==="sets") r[k].push(v); else r[k] += v; };
+  Object.entries(S.sessions).forEach(([id,s]) => { add(s.date,"min",s.minutes||0); add(s.date,"sessions",{id,...s}); });
+  Object.values(S.cards).forEach(c => add(c.last,"cards"));
+  Object.values(S.recall).forEach(r => (r.attempts||[]).forEach(a => add(a.date,"recall")));
+  Object.values(S.sets).forEach(s => add(usDate(s.date),"sets",s.name));
+  return m;
+}
+function consistencyPanel(){
+  const t = today(), act = activityByDay(), ws = weekOf(t), goal = S.settings.weekGoal;
+  let wkDays = 0, wkMin = 0;
+  for (let i=0;i<7;i++){ const r = act[addDays(ws,i)]; if (r){ wkDays++; wkMin += r.min; } }
+  const any = Object.keys(act).length > 0;
+  const sel = ui.heatDay || t, r = act[sel];
+  const dayLine = r ? [r.min?`${r.min} focused min`:"", r.sessions.length?`${r.sessions.length} session${r.sessions.length>1?"s":""}`:"", r.cards?`${r.cards} flashcard${r.cards>1?"s":""} last reviewed`:"", r.recall?`${r.recall} blank page${r.recall>1?"s":""}`:"", r.sets.length?r.sets.join(", "):""].filter(Boolean).join(" · ") : "";
+  return `<div class="panel">
+    <header><div><h2>Consistency</h2><p class="muted small">How often you study. A day counts when you do any work in this dashboard.</p></div><button class="btn sm ${ui.logTime?"":"primary"}" data-act="logTime">${ui.logTime?"Cancel":"Log study time"}</button></header>
+    ${ui.logTime?`<div class="tint acc stack" style="gap:10px;margin-bottom:14px">
+      <p class="small">Studied without focus mode? Add it here so it counts.</p>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+        <label class="field"><span>Date</span><input type="date" id="ltDate" value="${sel}" max="${t}"></label>
+        <label class="field"><span>Minutes</span><input type="number" id="ltMin" min="5" step="5" value="60"></label>
+        <label class="field"><span>What</span><select id="ltType">${TYPES.map(x=>`<option>${x}</option>`).join("")}</select></label>
+      </div>
+      <input type="text" id="ltNote" placeholder="Optional note, e.g. Themis crimes lecture" aria-label="Note">
+      <div><button class="btn primary sm" data-act="saveTime">Add to my log</button></div></div>`:""}
+    <div class="stats" style="margin-bottom:14px">
+      <div class="stat" style="background:var(--accent-soft)"><b>${wkDays}<span class="muted" style="font-size:15px"> / ${goal}</span></b><span>study days this week</span>
+        <div class="row" style="gap:4px;margin-top:6px"><span class="small muted">Goal</span><button class="btn sm" data-act="goal" data-d="-1" aria-label="Lower weekly goal">−</button><button class="btn sm" data-act="goal" data-d="1" aria-label="Raise weekly goal">+</button></div></div>
+      <div class="stat" style="background:var(--mint-soft)"><b>${(wkMin/60).toFixed(1)}</b><span>focused hours this week</span></div>
+      <div class="stat" style="background:var(--sun-soft)"><b>${Object.keys(act).length}</b><span>study days so far</span></div>
+    </div>
+    ${heatmap(act)}
+    <div class="row small muted" style="margin-top:8px;gap:6px">Less <span class="heat-key"><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i></span> More<span class="spacer"></span>Tap a day to see it</div>
+    <div class="tint ${r?"mint":"sky"}" style="margin-top:12px;padding:12px 14px">
+      <strong>${sel===t?"Today":fmtDay(sel)}</strong>
+      ${r?`<p class="small" style="margin-top:2px">${esc(dayLine)}</p>${r.sessions.map(s=>`<div class="row small" style="margin-top:6px;gap:8px;flex-wrap:nowrap"><span class="chip">${esc(s.type||"Study")}</span><span style="flex:1;min-width:0">${s.minutes} min${s.intention?` · ${esc(s.intention)}`:""}${s.outcome?` · ${esc(s.outcome)}`:""}</span><button class="btn ghost sm" data-act="delSession" data-id="${s.id}">Remove</button></div>`).join("")}`
+        : `<p class="small" style="margin-top:2px">${any?"Nothing logged this day.":"Nothing logged yet. Start a focus session, review flashcards, or tap Log study time and this fills in."}</p>`}
+    </div>
+  </div>`;
+}
+function heatmap(act){
+  const t = today(), start = addDays(weekOf(t), -15*7), sel = ui.heatDay || t; let h = "";
+  for (let i=0;i<16*7;i++){ const d = addDays(start,i), r = act[d], m = r ? r.min : 0, f = d>t;
+    const l = !r ? 0 : m<30 ? 1 : m<90 ? 2 : m<180 ? 3 : 4;
+    h += f ? `<i class="future"></i>` : `<button class="l${l} ${d===t?"today":""} ${d===sel?"sel":""}" data-act="pickDay" data-d="${d}" title="${fmtDay(d)}: ${r?(m?m+" min":"studied"):"no study"}" aria-label="${fmtDay(d)}, ${r?(m?m+" minutes":"studied"):"no study"}"></button>`; }
+  return `<div class="heat">${h}</div>`;
+}
+function loseList(n){
+  if (loading()) return `<div class="empty">Loading your results</div>`;
+  const rows = subtopicStats().filter(r=>r.n>=3).sort((a,b)=>b.lose-a.lose).slice(0,n);
+  if (!rows.length) return `<div class="empty">Log a practice set to see your weakest areas here.</div>`;
+  return `<p class="muted small" style="margin-bottom:10px">Ranked by questions you'd likely miss on a real MBE, so heavily tested areas come first.</p><div class="lose">${rows.map(r=>`<div class="it">
+    <div class="stack" style="gap:5px;min-width:0"><strong>${esc(r.subtopic)}</strong><div class="row" style="gap:6px">${subj(r.subject)}<span class="chip ${tone(r.p)}">${r.p}% right</span><span class="muted small">about ${r.w} Qs on the MBE</span></div></div>
+    <div><div class="pts">−${r.lose}</div><div class="muted small" style="text-align:right">Qs per exam</div></div></div>`).join("")}</div>`;
+}
+
+// ---------- Flashcards ----------
+function vCards(){
+  if (loading()) return `<div class="empty">Loading your cards</div>`;
+  const subjects = ["All", ...new Set(cardList().map(c=>c.q.subject))];
+  const {due, fresh, all} = dueCards(ui.cardFilter);
+  const queue = [...due.sort((a,b)=>a.st.due.localeCompare(b.st.due)), ...fresh];
+  const cur = queue.find(c => c.key===ui.cardCurrent) || queue[0];
+  ui.cardCurrent = cur ? cur.key : null;
+  const solid = all.filter(c => c.st && c.st.interval >= 21).length;
+  const head = `<div class="row" style="margin-bottom:14px">
+    <select id="cardFilter" data-act="cardFilter" style="width:auto" aria-label="Subject">${subjects.map(s=>`<option ${s===ui.cardFilter?"selected":""}>${esc(s)}</option>`).join("")}</select>
+    <span class="chip bad">${due.length} due</span><span class="chip sun">${fresh.length} new today</span><span class="chip good">${solid} of ${all.length} solid</span>
+    <span class="spacer"></span><span class="muted small">${reviewedToday()} reviewed today · Space to flip, 1 to 4 to rate</span></div>`;
+  if (!cur){ const next = all.filter(c=>c.st).map(c=>c.st.due).sort()[0];
+    return head + `<div class="tint mint" style="text-align:center;padding:36px 20px"><h2>Done for today</h2><p style="margin-top:6px">Every card here is a rule you missed in practice.${next?` The next one is due ${fmtDay(next)}.`:""}</p></div>`; }
+  const q = cur.q;
+  return head + `<div class="panel flash" style="--c:${sc(q.subject)}">
+    <div class="row">${subj(q.subject)}<span class="chip">${esc(q.subtopic)}</span>${cur.st?"":`<span class="chip sun">new</span>`}<span class="spacer"></span><span class="muted small">${queue.length} left</span></div>
+    <p class="cue">${esc(cur.cue)}</p>
+    ${ui.cardRevealed ? `<div class="ans">${esc(cur.note)}</div>
+      <p class="muted small">From ${esc(q.set.name)}${q.q?`, Q#${q.q}`:""}.${q.ans?` You chose ${q.ans}, the answer was ${q.correct}.`:""}</p>
+      <div class="rate">${["Again","Hard","Good","Easy"].map((l,i)=>`<button class="btn r${i}" data-act="rate" data-r="${i}">${l}<small>${i===0?"blanked":ivLabel(cur.st,i)}</small></button>`).join("")}</div>`
+    : `<textarea id="cardTry" rows="3" placeholder="Say the rule out loud or type it here before you flip. Trying first is what makes it stick."></textarea>
+      <div><button class="btn primary" data-act="reveal">Show the rule</button></div>`}
+  </div>`;
+}
+function nextState(st, r){
+  const t = today(); st = st ? {...st} : {interval:0, ease:2.5, reps:0, lapses:0, introduced:t};
+  if (r===0){ st.lapses++; st.ease = Math.max(1.3, st.ease-0.2); st.interval = 0; }
+  else if (!st.reps || st.interval===0){ st.interval = [0,1,3,6][r]; if (r===1) st.ease = Math.max(1.3, st.ease-0.15); if (r===3) st.ease += 0.15; }
+  else { if (r===1){ st.interval = Math.max(1, Math.round(st.interval*1.2)); st.ease = Math.max(1.3, st.ease-0.15); }
+    if (r===2) st.interval = Math.max(st.interval+1, Math.round(st.interval*st.ease));
+    if (r===3){ st.interval = Math.max(st.interval+2, Math.round(st.interval*st.ease*1.3)); st.ease += 0.15; } }
+  st.reps++; st.last = t; st.due = addDays(t, st.interval); return st;
+}
+function ivLabel(st,r){ const n = nextState(st,r).interval; return n===0?"today":n===1?"1 day":`${n} days`; }
+
+// ---------- Blank page ----------
+function suggestions(){
+  const have = new Set(Object.values(S.recall).map(r=>r.name.toLowerCase()));
+  const fromMiss = subtopicStats().filter(r=>r.n>=3 && r.p<70 && !have.has(r.subtopic.toLowerCase())).sort((a,b)=>b.lose-a.lose).slice(0,4).map(r=>({kind:"miss", name:r.subtopic, subject:r.subject, p:r.p}));
+  const starters = STARTERS.filter(s=>!have.has(s.name.toLowerCase())).map(s=>({kind:"starter", name:s.name, subject:s.subject}));
+  return {fromMiss, starters};
+}
+function vRecall(){
+  const topics = Object.entries(S.recall).sort((a,b)=>(a[1].due||"").localeCompare(b[1].due||""));
+  const cur = ui.topic && S.recall[ui.topic] ? S.recall[ui.topic] : null, t = today();
+  const {fromMiss, starters} = suggestions();
+  const sugBtn = s => `<button class="topic" data-act="suggest" data-kind="${s.kind}" data-s="${esc(s.subject)}" data-t="${esc(s.name)}"><span class="n">${esc(s.name)}${subj(s.subject)}</span>${s.kind==="miss"?`<span class="chip ${tone(s.p)}">${s.p}%</span>`:`<span class="chip acc">PASS</span>`}</button>`;
+  const list = `<aside class="panel stack" style="align-self:start">
+    <header style="margin:0"><h3>Your topics</h3><button class="btn sm" data-act="newTopic">New</button></header>
+    ${cur && outlines().length?`<button class="btn sm" data-act="olBrowse">${ic("book")}Browse Themis outlines</button>`:""}
+    ${ui.newTopic?`<div class="stack" style="gap:8px"><input type="text" id="ntName" placeholder="e.g. Larceny by trick" aria-label="Topic name">
+      <select id="ntSubject" aria-label="Subject">${[...MBE_SUBJECTS,...CA_SUBJECTS].map(s=>`<option>${s}</option>`).join("")}</select>
+      <div class="row"><button class="btn primary sm" data-act="createTopic">Add topic</button><button class="btn ghost sm" data-act="newTopic">Cancel</button></div></div>`:""}
+    <div class="topics">${topics.length ? topics.map(([id,r]) => { const last=(r.attempts||[]).slice(-1)[0], isDue = !r.due || r.due<=t;
+      return `<button class="topic ${id===ui.topic?"on":""}" data-act="pickTopic" data-id="${id}"><span class="n">${esc(r.name)}${subj(r.subject)}</span>
+      ${last?`<span class="chip ${isDue?"sun":tone(pct(last.got,last.total))}">${isDue?"due":pct(last.got,last.total)+"%"}</span>`:`<span class="chip sun">new</span>`}</button>`; }).join("") : `<p class="muted small">No topics yet. Pick one below.</p>`}</div>
+    ${fromMiss.length?`<hr class="rule"><span class="label">From your misses</span>${fromMiss.map(sugBtn).join("")}`:""}
+    ${starters.length?`<hr class="rule"><span class="label">From PASS I crimes and evidence</span>${starters.map(sugBtn).join("")}`:""}
+  </aside>`;
+  let main;
+  if (!cur) main = `<div class="tint sky stack">
+    <div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="badge sky">${ic("page")}</span><div class="stack" style="gap:6px"><h2>The blank page</h2>
+    <p>Pick a topic and write everything you know about it from memory. Then check your page against your checklist, tick what you had, add what you missed, and go again until the page is complete.</p></div></div>
+    <ol class="steps"><li><span>Write it cold. No notes, no outline.</span></li><li><span>Check it item by item. Be honest.</span></li><li><span>Add anything missing to the checklist so it's there next time.</span></li><li><span>Go again right away. Complete pages come back in a few days, incomplete ones tomorrow.</span></li></ol>
+    <p class="muted small">Topics from misses start with the rules you got wrong in practice questions. You can also add your own topics and checklists with New.</p></div>
+    <div style="margin-top:16px">${outlineBrowser()}</div>`;
+  else {
+    const items = cur.checklist || [], att = cur.attempts || [];
+    if (ui.recallStage==="write") main = `<div class="panel stack" style="border-top:5px solid ${sc(cur.subject)}">
+      <header style="margin:0"><div class="stack" style="gap:4px"><div class="row" style="gap:6px">${subj(cur.subject)}<span class="chip">round ${ui.recallRound}</span></div><h2>${esc(cur.name)}</h2></div>
+      <button class="btn ghost sm" data-act="editList">${ui.editList?"Done editing":"Edit checklist"}</button></header>
+      ${cur.ref?`<p class="muted small">${esc(cur.ref.label)} outline · ${esc(cur.ref.group)}</p>`:""}
+      ${ui.editList ? editList(cur) : `<p class="muted small">Write every element, rule and exception you can recall. Don't look anything up.</p>
+      <textarea id="recallText" class="page" placeholder="Start writing..." aria-label="Your blank page"></textarea>
+      <div class="row"><button class="btn primary" data-act="checkRecall" ${items.length?"":"disabled"}>${ic("check")}Check against my checklist (${items.length})</button>
+      ${items.length?"":`<span class="muted small">Add checklist items first.</span>`}<span class="spacer"></span>
+      ${att.length?`<span class="muted small">${att.length} past attempt${att.length>1?"s":""}, last ${pct(att.at(-1).got,att.at(-1).total)}%</span>`:""}</div>`}</div>`;
+    else { const got = items.filter((_,i)=>ui.recallGot[i]).length;
+      main = `<div class="panel stack" style="border-top:5px solid ${sc(cur.subject)}">
+      <header style="margin:0"><div class="stack" style="gap:4px"><div class="row" style="gap:6px">${subj(cur.subject)}<span class="chip">round ${ui.recallRound}</span></div><h2>${esc(cur.name)}</h2></div><span class="chip ${tone(pct(got,items.length))}">${got} of ${items.length}</span></header>
+      <div class="grid g2">
+        <div class="stack" style="gap:6px;min-width:0"><span class="label">What you wrote</span><div class="page" style="white-space:pre-wrap;min-height:200px">${esc(ui.recallTextSaved)}</div></div>
+        <div class="stack" style="gap:6px;min-width:0">${cur.ref?`<div class="ref">${ic("book")}<span>Open your Themis ${esc(cur.ref.label)} outline to <strong>${pdfPages(cur.ref)}</strong> and compare it with what you wrote. Tick an item only if you had the rule right, not just the heading.</span></div>`:""}<span class="label">Tick what you had</span>
+          <div>${items.map((it,i)=>`<div class="check"><input type="checkbox" id="rc${i}" data-act="got" data-i="${i}" ${ui.recallGot[i]?"checked":""}><label for="rc${i}">${esc(it)}</label></div>`).join("")}</div>
+          <div class="row" style="flex-wrap:nowrap"><input type="text" id="addMissed" placeholder="Add something that belongs here" aria-label="New checklist item"><button class="btn sm" data-act="addItem">Add</button></div></div>
+      </div>
+      <div class="row"><button class="btn primary" data-act="saveRecall" data-again="1">Save and go again</button><button class="btn" data-act="saveRecall">Save and finish</button>${cur.ref?`<button class="btn ghost" data-act="saveRecall" data-next="1">Save and start the next section</button>`:""}
+      <span class="spacer"></span><span class="muted small">${got===items.length?"Complete. It comes back in a few days.":"Missed items come back tomorrow."}</span></div></div>`; }
+  }
+  return `<div class="recall">${list}<div style="min-width:0">${main}</div></div>`;
+}
+function editList(cur){
+  return `<div class="stack" style="gap:8px">${(cur.checklist||[]).map((it,i)=>`<div class="row" style="flex-wrap:nowrap"><span style="flex:1;min-width:0">${esc(it)}</span><button class="btn ghost sm" data-act="rmItem" data-i="${i}">Remove</button></div>`).join("") || `<p class="muted">No items yet.</p>`}
+   <div class="row" style="flex-wrap:nowrap"><input type="text" id="newItem" placeholder="One element or rule per item" aria-label="New checklist item"><button class="btn sm" data-act="addItem">Add</button></div>
+   <div class="row"><button class="btn ghost sm" data-act="delTopic">Delete topic</button></div></div>`;
+}
+
+// ---------- Themis outlines ----------
+// Each outline doc holds its table of contents grouped into blank page topics, with PDF page ranges.
+const OL_ORDER = ["civpro","conlaw","contracts","crimlaw","crimpro","evidence","property","torts","corps","wills-trusts"];
+const outlines = () => Object.values(S.outlines).sort((a,b)=>(OL_ORDER.indexOf(a.key)+99)%99 - (OL_ORDER.indexOf(b.key)+99)%99);
+function recallByRef(){ const m = {}; Object.entries(S.recall).forEach(([id,r]) => { if (r.ref) m[r.ref.id] = [id,r]; }); return m; }
+function olState(entry){ if (!entry) return "new"; const a = (entry[1].attempts||[]).at(-1); if (!a) return "started"; return a.got===a.total ? "solid" : "working"; }
+function olCoverage(o, by){ let started=0, solid=0; o.topics.forEach(tp => { const s = olState(by[tp.id]); if (s!=="new") started++; if (s==="solid") solid++; }); return {started, solid, total:o.topics.length}; }
+const olChip = (entry) => { const s = olState(entry); if (s==="new") return `<span class="chip">new</span>`; if (s==="started") return `<span class="chip sun">started</span>`;
+  const a = entry[1].attempts.at(-1), p = pct(a.got,a.total), due = entry[1].due && entry[1].due <= today();
+  return `<span class="chip ${due?"sun":tone(p)}">${due?"due":s==="solid"?"✓ "+p+"%":p+"%"}</span>`; };
+const pdfPages = r => r.pdf[0]===r.pdf[1] ? `PDF page ${r.pdf[0]}` : `PDF pages ${r.pdf[0]} to ${r.pdf[1]}`;
+// What to write next: anything due first, then the next untouched outline topic in your weakest MBE subject.
+function nextBlankPage(){
+  const t = today();
+  const due = Object.entries(S.recall).filter(([,r]) => (r.attempts||[]).length && r.due && r.due <= t).sort((a,b)=>a[1].due.localeCompare(b[1].due))[0];
+  if (due) return {kind:"due", id:due[0], name:due[1].name, subject:due[1].subject};
+  const by = recallByRef(), st = subjectStats();
+  const acc = o => { const r = st[o.subject]; return r && r.n ? r.right/r.n : 2; };
+  const o = outlines().filter(o => o.topics.some(tp => !by[tp.id])).sort((a,b) => acc(a)-acc(b))[0];
+  if (!o) return null;
+  const tp = o.topics.find(tp => !by[tp.id]);
+  return {kind:"outline", key:o.key, id:tp.id, name:tp.name, subject:tp.subject, label:o.label};
+}
+function startOutlineTopic(key, id){
+  const o = S.outlines[key], tp = o && o.topics.find(x => x.id===id); if (!tp) return;
+  const have = recallByRef()[id];
+  if (have) ui.topic = have[0];
+  else { const rid = uid(); ui.topic = rid;
+    put("recall", rid, {name:tp.name, subject:tp.subject, checklist:[...tp.items], attempts:[], due:today(), from:"themis", ref:{key, id, label:o.label, group:tp.group, pdf:tp.pdf}}); }
+  ui.recallStage="write"; ui.recallRound=1; ui.editList=false; ui.olKey=key; clearOnNext("recallText");
+  if (route!=="recall") location.hash = "#recall"; else schedule();
+}
+function outlineBrowser(){
+  const ols = outlines();
+  if (!ready.outlines && dbState!=="off") return `<div class="empty">Loading your outlines</div>`;
+  if (!ols.length) return "";
+  const by = recallByRef(), key = ui.olKey && S.outlines[ui.olKey] ? ui.olKey : ols[0].key, o = S.outlines[key], cov = olCoverage(o, by);
+  const groups = []; o.topics.forEach(tp => { let g = groups.find(x=>x.name===tp.group); if (!g) groups.push(g = {name:tp.group, list:[]}); g.list.push(tp); });
+  const firstOpen = groups.find(g => g.list.some(tp => olState(by[tp.id])==="new")) || groups[0];
+  return `<section class="panel stack" style="gap:14px">
+    <header style="margin:0"><div><h2>Your Themis outlines</h2><p class="muted small">Every section of each outline, grouped into blank page topics. Pick one, write it cold, then check yourself against the outline pages shown.</p></div></header>
+    <div class="ol-subj" role="tablist" aria-label="Outline">${ols.map(x => { const c = olCoverage(x, by);
+      return `<button class="btn sm ${x.key===key?"on":""}" data-act="olKey" data-k="${x.key}" role="tab" aria-selected="${x.key===key}"><span class="dot" style="background:${sc(x.subject)}"></span>${esc(x.label)}<span class="muted num" style="font-weight:500">${c.started}/${c.total}</span></button>`; }).join("")}</div>
+    <div class="row" style="gap:12px"><span class="bar" style="height:10px"><i style="width:${pct(cov.started,cov.total)}%;background:${sc(o.subject)}"></i></span>
+      <span class="small num">${cov.started} of ${cov.total} started · ${cov.solid} complete</span></div>
+    <div class="stack" style="gap:8px">${groups.map(g => { const k = key+"|"+g.name, open = ui.olOpen[k] ?? (g===firstOpen), gc = g.list.filter(tp=>olState(by[tp.id])!=="new").length;
+      return `<div class="ol-group"><button class="gh" data-act="olGroup" data-g="${esc(k)}" aria-expanded="${open}"><span style="flex:1;min-width:0">${esc(g.name)}</span><span class="bar"><i style="width:${pct(gc,g.list.length)}%;background:${sc(o.subject)}"></i></span><span class="small muted num">${gc}/${g.list.length}</span><span aria-hidden="true">${open?"▾":"▸"}</span></button>
+        ${open?`<div class="ol-list">${g.list.map(tp => `<button class="ol-item" data-act="olStart" data-k="${key}" data-id="${tp.id}"><span><strong>${esc(tp.name)}</strong><br><span class="muted small">${tp.items.length} item${tp.items.length>1?"s":""} to cover</span></span><span class="pp">p. ${tp.pdf[0]}${tp.pdf[1]!==tp.pdf[0]?"–"+tp.pdf[1]:""}</span>${olChip(by[tp.id])}</button>`).join("")}</div>`:""}</div>`; }).join("")}</div>
+  </section>`;
+}
+function olCoveragePanel(){
+  const ols = outlines(); if (!ols.length) return "";
+  const by = recallByRef();
+  return `<section class="panel"><header><h2>Outline coverage</h2><span class="muted small">Blank page topics started and completed from each Themis outline</span></header>
+    <div class="weak">${ols.map(o => { const c = olCoverage(o, by), p = pct(c.started, c.total);
+      return `<span class="s"><button class="btn ghost sm" data-act="olOpenRecall" data-k="${o.key}" style="padding-left:0">${subj(o.label)}</button></span><span class="bar"><i style="width:${p}%;background:${sc(o.subject)}"></i></span><span class="num">${p}%</span><span class="muted small num">${c.solid}✓ ${c.started}/${c.total}</span>`; }).join("")}</div></section>`;
+}
+
+// ---------- Outline reader ----------
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+function vOutlines(){
+  const ols = outlines();
+  if (!ready.outlines && dbState!=="off") return `<div class="empty">Loading your outlines</div>`;
+  if (!ols.length) return `<div class="empty">No outlines loaded yet.</div>`;
+  const by = recallByRef(), last = lsGet("bd-reader") || {};
+  const o = ui.rdKey && S.outlines[ui.rdKey];
+  if (!o) return `<div class="stack" style="gap:16px">
+    <section class="panel"><header><div><h2>Outlines</h2><p class="muted small">Your Themis Law School Essentials outlines. Open one to read it, jump to any section, or turn a section into a blank page.</p></div></header>
+      <div class="ol-cover">${ols.map(x => { const c = olCoverage(x, by), lp = last[x.key];
+        return `<button data-act="rdOpen" data-k="${x.key}" style="--c:${sc(x.subject)}"><strong>${esc(x.label)}</strong><span class="small muted">${x.pages} pages · ${x.topics.length} sections</span>
+          <span class="bar" style="width:100%"><i style="width:${pct(c.started,c.total)}%;background:${sc(x.subject)}"></i></span>
+          <span class="small">${c.started} of ${c.total} practiced${lp?` · last at p. ${lp}`:""}</span></button>`; }).join("")}</div></section></div>`;
+  const page = ui.rdPage || last[o.key] || (o.topics[0] ? o.topics[0].pdf[0] : 1);
+  const groups = []; o.topics.forEach(tp => { let g = groups.find(x=>x.name===tp.group); if (!g) groups.push(g = {name:tp.group, list:[]}); g.list.push(tp); });
+  const curTp = [...o.topics].reverse().find(tp => tp.pdf[0] <= page);
+  const toc = groups.map(g => { const k = o.key+"|"+g.name, open = ui.rdOpen[k] ?? (curTp && curTp.group===g.name);
+    return `<div class="sec"><button class="sh" data-act="rdGroup" data-g="${esc(k)}" aria-expanded="${open}"><span aria-hidden="true">${open?"▾":"▸"}</span><span style="flex:1;min-width:0">${esc(g.name)}</span><span class="pp small muted num">${g.list[0].pdf[0]}</span></button>
+      ${open?g.list.map(tp => `<div class="toc-row"><button class="go ${curTp===tp?"on":""}" data-act="rdGo" data-p="${tp.pdf[0]}"><span>${esc(tp.name)}</span><span class="pp">${tp.pdf[0]}</span></button><button class="btn ghost sm" data-act="olStart" data-k="${o.key}" data-id="${tp.id}" title="Blank page this section" aria-label="Blank page: ${esc(tp.name)}">${olState(by[tp.id])==="new"?ic("page"):olChip(by[tp.id])}</button></div>`).join(""):""}</div>`; }).join("");
+  return `<div class="stack" style="gap:12px">
+    <div class="row rd-bar" style="gap:8px"><button class="btn sm" data-act="rdBack">← All outlines</button>
+      <select id="rdSwitch" data-act="rdSwitch" aria-label="Switch outline" style="width:auto">${ols.map(x=>`<option value="${x.key}" ${x.key===o.key?"selected":""}>${esc(x.label)}</option>`).join("")}</select>
+      <span class="spacer"></span>
+      <label class="row small" style="gap:6px">Page <input type="number" id="rdPageIn" min="1" max="${o.pages}" value="${page}" style="width:76px"></label><button class="btn sm" data-act="rdGoIn">Go</button>
+      <span class="row" style="gap:4px"><button class="btn sm" data-act="rdZoom" data-d="-1" aria-label="Zoom out">−</button><button class="btn sm" data-act="rdZoom" data-d="1" aria-label="Zoom in">+</button></span>
+      ${o.asset?`<button class="btn sm" data-act="rdSave">Save PDF</button>`:""}</div>
+    <div class="reader">
+      <aside class="panel toc-side ${ui.rdToc?"open":""}"><header style="margin:0 0 6px"><h3>Contents</h3><button class="btn sm toc-tog" data-act="rdToc" aria-expanded="${!!ui.rdToc}">${ui.rdToc?"Hide":"Show"}</button></header>
+        <div class="toc-body"><p class="muted small" style="margin-bottom:6px">Tap a section to jump there. The page icon turns it into a blank page.</p>${toc}</div></aside>
+      <div style="min-width:0">${o.asset ? `<div class="pdfwrap" data-k="${o.key}" role="region" aria-label="${esc(o.label)} outline" tabindex="0"><div class="empty">Opening the outline</div></div>`
+        : `<div class="empty">This outline's PDF hasn't been added yet.</div>`}</div>
+    </div></div>`;
+}
+
+// PDF reader. The page runs in a sandboxed frame where the browser's own PDF viewer is blocked,
+// so pages are drawn to canvases with PDF.js (worker code runs on the main thread).
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+let pdfLibP = null;
+const loadScript = src => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("script")); document.head.appendChild(el); });
+function pdfLib(){
+  if (!pdfLibP) pdfLibP = (async () => { await loadScript(PDFJS+"pdf.min.js"); await loadScript(PDFJS+"pdf.worker.min.js");
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS+"pdf.worker.min.js"; return window.pdfjsLib; })().catch(e => { pdfLibP = null; throw e; });
+  return pdfLibP;
+}
+const RD = { key:null, wrap:null, doc:null, blob:null, zoom:1, done:new Map(), obs:null, jumped:null, token:0 };
+function mountReader(){
+  const wrap = $("#view .pdfwrap[data-k]"); if (!wrap) return;
+  const key = wrap.dataset.k, want = ui.rdPage;
+  if (RD.key === key && RD.wrap === wrap){ if (RD.doc && want && want !== RD.jumped) rdJump(want); return; }
+  rdLoad(wrap, key);
+}
+async function rdLoad(wrap, key){
+  const o = S.outlines[key], my = ++RD.token;
+  if (RD.obs) RD.obs.disconnect();
+  Object.assign(RD, {key, wrap, doc:null, blob:null, done:new Map(), obs:null, jumped:null});
+  const fail = msg => { if (my===RD.token) wrap.innerHTML = `<div class="empty stack" style="gap:10px;align-items:center"><span>${msg}</span><button class="btn sm" data-act="rdRetry">Try again</button></div>`; };
+  try {
+    const [lib, buf] = await Promise.all([pdfLib(), fetch("/_blob/"+o.asset).then(r => { if (!r.ok) throw new Error("http "+r.status); return r.arrayBuffer(); })]);
+    if (my !== RD.token) return;
+    RD.blob = new Blob([buf], {type:"application/pdf"});
+    const doc = await lib.getDocument({data:new Uint8Array(buf), isEvalSupported:false}).promise;
+    if (my !== RD.token) return;
+    RD.doc = doc;
+    const p1 = await doc.getPage(1), vp = p1.getViewport({scale:1}), ratio = vp.height / vp.width;
+    let h = `<div class="pdfpages" style="width:${RD.zoom*100}%;max-width:${RD.zoom*900}px">`;
+    for (let n=1; n<=doc.numPages; n++) h += `<div class="pg" data-n="${n}" style="aspect-ratio:1/${ratio.toFixed(4)}"><span class="pn">${n}</span></div>`;
+    wrap.innerHTML = h + `</div>`;
+    RD.obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) rdPaint(+e.target.dataset.n); }), {root:wrap, rootMargin:"600px 0px"});
+    wrap.querySelectorAll(".pg").forEach(el => RD.obs.observe(el));
+    wrap.onscroll = () => { clearTimeout(RD.st); RD.st = setTimeout(rdTrack, 150); };
+    const last = (lsGet("bd-reader")||{})[key];
+    rdJump(ui.rdPage || last || (o.topics[0] ? o.topics[0].pdf[0] : 1));
+  } catch(e){ console.warn(e); fail(String(e.message).startsWith("http") ? "The outline file didn't load." : "The PDF viewer didn't load. Check your connection."); }
+}
+async function rdPaint(n){
+  if (!RD.doc || RD.done.get(n) === RD.zoom) return;
+  RD.done.set(n, RD.zoom);
+  const el = RD.wrap.querySelector(`.pg[data-n="${n}"]`); if (!el) return;
+  try {
+    const page = await RD.doc.getPage(n), base = page.getViewport({scale:1});
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), scale = (el.clientWidth || 800) * dpr / base.width;
+    const vp = page.getViewport({scale}), c = document.createElement("canvas");
+    c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+    await page.render({canvasContext:c.getContext("2d"), viewport:vp}).promise;
+    if (RD.done.get(n) !== RD.zoom) return;
+    el.querySelector("canvas")?.remove(); el.prepend(c);
+  } catch(e){ RD.done.delete(n); }
+}
+function rdJump(n){
+  const el = RD.wrap && RD.wrap.querySelector(`.pg[data-n="${n}"]`); if (!el) return;
+  RD.jumped = n; RD.wrap.scrollTop = el.offsetTop - 8; rdPaint(n);
+}
+function rdTrack(){
+  if (!RD.wrap) return; const top = RD.wrap.scrollTop + RD.wrap.clientHeight/3;
+  let cur = 1; RD.wrap.querySelectorAll(".pg").forEach(el => { if (el.offsetTop <= top) cur = +el.dataset.n; });
+  const inp = $("#rdPageIn"); if (inp && document.activeElement !== inp) inp.value = cur;
+  const l = lsGet("bd-reader") || {}; l[RD.key] = cur; lsSet("bd-reader", l);
+}
+function rdZoom(d){
+  if (!RD.doc) return; const cur = +($("#rdPageIn")||{}).value || 1;
+  RD.zoom = Math.min(3, Math.max(1, +(RD.zoom + d*0.5).toFixed(1)));
+  const box = RD.wrap.querySelector(".pdfpages"); box.style.width = RD.zoom*100+"%"; box.style.maxWidth = RD.zoom*900+"px";
+  RD.done = new Map(); RD.wrap.querySelectorAll(".pg canvas").forEach(c => c.style.opacity = ".6");
+  rdJump(cur); RD.wrap.querySelectorAll(".pg").forEach(el => { const r = el.getBoundingClientRect(), w = RD.wrap.getBoundingClientRect(); if (r.bottom > w.top-600 && r.top < w.bottom+600) rdPaint(+el.dataset.n); });
+}
+async function rdSave(){
+  const o = S.outlines[RD.key]; if (!RD.blob || !o){ toast("The outline is still loading"); return; }
+  try { const d = window.claude && await window.claude.use("downloads"); if (!d) throw {code:"unavailable"}; await d.save({filename:`Themis ${o.label}.pdf`.replace(/&/g,"and"), data:RD.blob}); }
+  catch(e){ if (e && e.code==="declined") return; toast("Saving isn't available in this view"); }
+}
+
+// ---------- Error log ----------
+function vLog(){
+  if (loading()) return `<div class="empty">Loading your results</div>`;
+  const qs = allQuestions().filter(q => ui.logFilter==="All" || q.subject===ui.logFilter);
+  const misses = qs.filter(isMiss);
+  let rows = ui.logScope==="misses" ? misses : qs;
+  if (ui.logUntagged) rows = rows.filter(q => isMiss(q) && !reasonOf(q.key));
+  rows = rows.sort((a,b)=> b.day.localeCompare(a.day) || a.q-b.q);
+  const untagged = misses.filter(q=>!reasonOf(q.key)).length;
+  const subjects = ["All", ...new Set(allQuestions().map(q=>q.subject))];
+  const sets = Object.values(S.sets).sort((a,b)=>usDate(b.date).localeCompare(usDate(a.date)));
+  return `<div class="stack" style="gap:16px">
+  <section class="panel">
+    <header><h2>Practice sets</h2><button class="btn primary sm" data-act="logForm">${ui.logForm?"Cancel":"Log a set"}</button></header>
+    ${ui.logForm ? logForm() : ""}
+    ${ui.reflect ? reflectForm(ui.reflect) : ""}
+    <div class="tablewrap"><table><thead><tr><th>Set</th><th>Date</th><th>Subject</th><th>Score</th><th>Pace</th><th>Reflection</th><th></th></tr></thead><tbody>
+    ${sets.map(s=>{ const t=setTotals(s), p=pct(t.correct,t.total), subs=[...new Set((s.questions||[]).map(q=>q.subject))], pace = s.seconds&&t.total ? s.seconds/t.total : null, rf = S.reflections[s.id];
+      return `<tr><td><strong>${esc(s.name)}</strong><br><span class="muted small">${esc(s.source||"")}</span></td><td class="num">${fmtDay(usDate(s.date))}</td>
+      <td><div class="row" style="gap:4px">${(s.subject?[s.subject]:subs).map(subj).join("") || `<span class="chip">Mixed</span>`}</div></td>
+      <td><span class="chip ${tone(p)}">${t.correct}/${t.total} · ${p}%</span></td>
+      <td>${pace?`<span class="chip num ${pace>MBE_PACE?"warn":"good"}">${mmss(pace)}</span>`:"·"}</td>
+      <td><button class="btn sm ${rf?"":"primary"}" data-act="reflect" data-id="${s.id}">${rf?"View":"Reflect"}</button></td>
+      <td>${s.source==="Logged"?`<button class="btn ghost sm" data-act="delSet" data-id="${s.id}">Delete</button>`:""}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="muted small" style="margin-top:8px">Pace is minutes per question. The MBE gives you 1:48.</p>
+  </section>
+  <section class="panel">
+    <header><h2>Every miss, and why</h2><div class="row"><span class="chip ${untagged?"warn":"good"}">${untagged} untagged</span><button class="btn ghost sm" data-act="helpReason">${ui.helpReason?"Hide":"How to diagnose a miss"}</button></div></header>
+    ${ui.helpReason?`<div class="tint acc" style="margin-bottom:14px"><p class="small" style="margin-bottom:10px">From the PASS I MBE review chart. Ask yourself these for every miss and every lucky guess.</p><div class="grid g2">${REASONS.map(r=>`<div><strong class="small">${esc(r.r)}</strong><p class="small muted">${esc(r.q)}</p></div>`).join("")}</div></div>`
+      :`<p class="muted small" style="margin-bottom:12px">PASS says to review every explanation, wrong and right. Tag why you missed each one, and switch to all questions to flag lucky guesses.</p>`}
+    <div class="row" style="margin-bottom:12px">
+      <select id="logFilter" data-act="logFilter" style="width:auto" aria-label="Subject">${subjects.map(s=>`<option ${s===ui.logFilter?"selected":""}>${esc(s)}</option>`).join("")}</select>
+      <select id="logScope" data-act="logScope" style="width:auto" aria-label="Which questions"><option value="misses" ${ui.logScope==="misses"?"selected":""}>Misses only</option><option value="all" ${ui.logScope==="all"?"selected":""}>All questions</option></select>
+      <label class="row small" style="gap:6px"><input type="checkbox" id="logUntagged" data-act="logUntagged" ${ui.logUntagged?"checked":""}> Untagged only</label>
+      <span class="spacer"></span><span class="muted small">${rows.length} shown</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Question</th><th>Subtopic</th><th>You / key</th><th>Rule</th><th>Why</th></tr></thead><tbody>
+    ${rows.slice(0,260).map(q=>{ const miss=isMiss(q), tag=reasonOf(q.key), opts = miss ? REASONS.map(r=>r.r) : [LUCKY];
+      return `<tr><td><span class="num">Q#${q.q}</span><br><span class="muted small">${esc(q.set.name)}</span></td><td>${esc(q.subtopic)}<br>${subj(q.subject)}</td>
+      <td class="num">${miss?`<span style="color:var(--bad)">${q.ans||"·"}</span> / ${q.correct||"·"}`:`<span style="color:var(--good)">${q.ans}</span>`}</td>
+      <td class="rule">${miss?esc(q.note||""):`<span class="muted">Correct</span>`}</td>
+      <td><select id="tag_${esc(q.key)}" data-act="tag" data-k="${esc(q.key)}" aria-label="Reason">${`<option value="">${miss?"Pick a reason":"Sure of it"}</option>`}${opts.map(r=>`<option ${r===tag?"selected":""}>${esc(r)}</option>`).join("")}</select></td></tr>`; }).join("") || `<tr><td colspan="5" class="muted">Nothing here.</td></tr>`}
+    </tbody></table></div>
+  </section></div>`;
+}
+function reflectForm(id){
+  const s = S.sets[id]; if (!s) return ""; const r = S.reflections[id] || {};
+  const tags = {}; (s.questions||[]).forEach(q => { const t = reasonOf(`${s.id}_${q.q}`); if (t && t!==LUCKY) tags[t]=(tags[t]||0)+1; });
+  const common = Object.entries(tags).sort((a,b)=>b[1]-a[1])[0];
+  const f = (k,l,ph) => `<label class="field"><span>${l}</span><textarea id="rf_${k}" rows="2" placeholder="${ph}">${esc(r[k]||"")}</textarea></label>`;
+  return `<div class="tint sun stack" style="margin-bottom:16px">
+    <div class="row"><h3>Reflection · ${esc(s.name)}</h3><span class="spacer"></span><button class="btn ghost sm" data-act="reflect" data-id="">Close</button></div>
+    <p class="small muted">The PASS I MBE assessment and reflection sheet.${common?` Your tags point to <strong>${esc(common[0])}</strong> (${common[1]} misses).`:" Tag your misses first and the most common error shows up here."}</p>
+    <div class="grid g2">${f("common","What was my most common error?","e.g. Missed key words like 'knowingly'")}${f("fix","Steps I need to take to fix it","e.g. Underline the mental state in every crimes question")}
+    ${f("area","Area of law to review (be specific)","e.g. Attempt and impossibility")}${f("rules","Rules in this area I don't understand yet","e.g. Hybrid impossibility")}</div>
+    <div class="row"><button class="btn primary sm" data-act="saveReflect" data-id="${id}">Save reflection</button></div></div>`;
+}
+function logForm(){
+  return `<div class="tint acc stack" style="margin-bottom:16px">
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+      <label class="field"><span>Name</span><input type="text" id="lfName" placeholder="AdaptiBar mixed set"></label>
+      <label class="field"><span>Subject</span><select id="lfSubject"><option>Mixed</option>${MBE_SUBJECTS.map(s=>`<option>${s}</option>`).join("")}</select></label>
+      <label class="field"><span>Date</span><input type="date" id="lfDate" value="${today()}"></label>
+      <label class="field"><span>Questions</span><input type="number" id="lfTotal" min="1" value="30"></label>
+      <label class="field"><span>Correct</span><input type="number" id="lfCorrect" min="0"></label>
+      <label class="field"><span>Minutes</span><input type="number" id="lfMin" min="0"></label>
+    </div>
+    <label class="field"><span>Misses (optional, one per line: question number, subject, subtopic, rule in your own words)</span>
+      <textarea id="lfMisses" rows="4" placeholder="1834, Evidence, Hearsay, A present sense impression must describe the event while or right after perceiving it"></textarea></label>
+    <div class="row"><button class="btn primary" data-act="saveSet">Save set</button><span class="muted small">Each miss with a rule becomes a flashcard. For a full AdaptiBar export, send the PDF to Claude and it can be loaded question by question.</span></div>
+  </div>`;
+}
+
+// ---------- Essays & PTs ----------
+const STAGES = ["Not started","Written, timed","Self-assessed","Rules added to outline"];
+const BRAVERY = [
+  ["issues","Issue matching","Did I spot every issue? For any I missed, was it on my issues checklist? If not, add it. If it was, why did I miss it?"],
+  ["headings","Headings","Does every issue have a heading the grader can find? Did I bury anything?"],
+  ["org","Organization","Where my order differs from the model, did order matter? What will I do next time?"],
+  ["rules","Rule statements","Is each rule complete, with its elements and buzzwords? Too long or too short for the essay?"],
+  ["facts","Fact match","Did I use the facts the model used? Were my extra facts necessary?"],
+  ["sides","Both sides","Did the model argue a second side that I missed? Was I reaching anywhere?"],
+  ["concl","Conclusions","Does each issue end with a conclusion that answers the call and matches my analysis?"],
+  ["format","Format","Strict IRAC, paragraphs, headings, easy for the grader to read?"]
+];
+const PTCHECK = [
+  ["task","Followed the task memo","Did my answer follow the directions of the task memo exactly?"],
+  ["tone","Tone, goal and audience","Right audience, and objective or persuasive as asked?"],
+  ["order","Organization","Does my order and heading structure follow the sample answer?"],
+  ["subs","Sub-issues","Did I break rules with multiple elements into sub-issues like the sample?"],
+  ["cases","Library coverage","Did I use every case and statute in the library that the sample used?"]
+];
+function vEssays(){
+  const es = Object.entries(S.essays).sort((a,b)=>(a[1].order??99)-(b[1].order??99));
+  const done = es.filter(([,e])=>e.stage===STAGES[3]).length;
+  return `<div class="stack" style="gap:16px">
+  <section class="grid g3">
+    <div class="tint coral stack" style="gap:6px"><span class="label">Essays</span><b class="num" style="font-size:26px">5 × 1 hour</b><span class="small">Graded 40 to 100 in 5-point steps. Write it cold, then self-assess against the model.</span></div>
+    <div class="tint grape stack" style="gap:6px"><span class="label">Performance test</span><b class="num" style="font-size:26px">1 × 90 min</b><span class="small">Graded on following instructions, content, thoroughness and organization.</span></div>
+    <div class="tint mint stack" style="gap:6px"><span class="label">Your queue</span><b class="num" style="font-size:26px">${done} of ${es.length}</b><span class="small">fully reviewed and added to your outline</span></div>
+  </section>
+  ${ui.assess ? assessPanel(ui.assess) : ""}
+  <section class="panel">
+    <header><h2>Redo queue</h2><button class="btn sm" data-act="essayForm">${ui.essayForm?"Cancel":"Add one"}</button></header>
+    <p class="muted small" style="margin-bottom:12px">Write each one cold and timed, self-assess it, then add every missed rule to your outline or flashcards. The questions and model answers are in your PASS course files.</p>
+    ${ui.essayForm?`<div class="row" style="margin-bottom:12px"><input type="text" id="essayName" placeholder="e.g. July 2019 Q2 Evidence" style="flex:2;min-width:200px" aria-label="Question name"><select id="essaySubj" style="flex:1;min-width:160px" aria-label="Subject">${[...MBE_SUBJECTS,...CA_SUBJECTS].map(s=>`<option>${s}</option>`).join("")}</select><button class="btn primary sm" data-act="addEssay">Add</button></div>`:""}
+    ${es.length ? `<div class="tablewrap"><table><thead><tr><th>Question</th><th>Stage</th><th>Score</th><th>What I missed</th><th></th></tr></thead><tbody>${es.map(([id,e])=>`<tr>
+      <td style="min-width:220px"><strong>${esc(e.name)}</strong><div class="row" style="gap:4px;margin-top:4px">${(e.subjects||[]).map(subj).join("")}<span class="chip">${e.kind==="PT"?"90 min PT":"1 hr essay"}</span></div>${e.source?`<span class="muted small">${esc(e.source)}</span>`:""}</td>
+      <td><select id="es_${id}" data-act="essayStage" data-id="${id}" aria-label="Stage">${STAGES.map(s=>`<option ${s===e.stage?"selected":""}>${s}</option>`).join("")}</select></td>
+      <td><input type="text" id="esc_${id}" data-act="essayField" data-f="score" data-id="${id}" value="${esc(e.score||"")}" placeholder="40 to 100" style="width:96px" aria-label="Score"></td>
+      <td><input type="text" id="esm_${id}" data-act="essayField" data-f="missed" data-id="${id}" value="${esc(e.missed||"")}" placeholder="Issues or rules I missed" style="min-width:200px" aria-label="What I missed"></td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm" data-act="writeEssay" data-id="${id}">${ic("timer")}Write</button><button class="btn sm" data-act="assess" data-id="${id}">Assess</button><button class="btn ghost sm" data-act="delEssay" data-id="${id}">Remove</button></div></td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Add the essays and PTs you plan to redo.</div>`}
+  </section></div>`;
+}
+function assessPanel(id){
+  const e = S.essays[id]; if (!e) return ""; const list = e.kind==="PT" ? PTCHECK : BRAVERY, a = e.assess || {};
+  const n = list.filter(([k])=>a[k]).length;
+  return `<section class="panel" style="border-top:5px solid var(--sun)">
+    <header><div><span class="label">${e.kind==="PT"?"PT answer comparison":"Bar Bravery self-assessment"}</span><h2>${esc(e.name)}</h2></div><div class="row"><span class="chip ${n===list.length?"good":"sun"}">${n} of ${list.length}</span><button class="btn ghost sm" data-act="assess" data-id="">Close</button></div></header>
+    <p class="muted small" style="margin-bottom:6px">Put your answer side by side with the model. Work one step at a time and tick it when you've done it honestly.</p>
+    <div>${list.map(([k,t,q])=>`<div class="ck"><input type="checkbox" id="as_${k}" data-act="assessTick" data-id="${id}" data-k="${k}" ${a[k]?"checked":""}><label for="as_${k}" class="stack" style="gap:2px"><strong>${t}</strong><span class="small muted">${q}</span></label></div>`).join("")}</div>
+    <label class="field" style="margin-top:10px"><span>My plan for next time</span><textarea id="asPlan" rows="2" placeholder="e.g. Write the issues checklist before reading the facts a second time">${esc(e.plan||"")}</textarea></label>
+    <div class="row" style="margin-top:10px"><button class="btn primary sm" data-act="savePlan" data-id="${id}">Save plan</button></div></section>`;
+}
+
+// ---------- Progress ----------
+function vProgress(){
+  if (loading()) return `<div class="empty">Loading your results</div>`;
+  const sets = Object.values(S.sets).sort((a,b)=>usDate(a.date).localeCompare(usDate(b.date)));
+  let tot=0, cor=0, secs=0, timedQ=0; sets.forEach(s=>{ const t=setTotals(s); tot+=t.total; cor+=t.correct; if (s.seconds){ secs+=s.seconds; timedQ+=t.total; } });
+  const subjS = subjectStats(), st = subtopicStats();
+  const tags = {}; Object.values(S.tags).forEach(t=>{ const r = PREV_REASONS[t.reason]||t.reason; if (r && r!==LUCKY) tags[r]=(tags[r]||0)+1; });
+  const lucky = Object.values(S.tags).filter(t=>t.reason===LUCKY).length;
+  const tagTotal = Object.values(tags).reduce((a,b)=>a+b,0), missTotal = allQuestions().filter(isMiss).length;
+  const groups = {}; st.forEach(r => (groups[r.subject] = groups[r.subject]||[]).push(r));
+  const colors = ["--coral","--sky","--sun","--grape","--mint","--accent","--s-ca","--s-torts","--muted"];
+  return `<div class="stack" style="gap:16px">
+  <section class="stats">
+    <div class="stat" style="background:var(--accent-soft)"><b>${pct(cor,tot)}%</b><span>overall accuracy. PASS aims for 60 to 65%, then 65%+ by bar month</span></div>
+    <div class="stat" style="background:var(--mint-soft)"><b>${tot}</b><span>MBE questions done</span></div>
+    <div class="stat" style="background:var(--sun-soft)"><b>${timedQ?mmss(secs/timedQ):"·"}</b><span>average per question (MBE pace 1:48)</span></div>
+    <div class="stat" style="background:var(--grape-soft)"><b>${(Object.values(S.sessions).reduce((a,s)=>a+(s.minutes||0),0)/60).toFixed(1)}</b><span>focused hours logged</span></div>
+  </section>
+  <section class="panel"><header><h2>Road to 1,600 to 2,000 questions</h2><span class="muted small">PASS target for practice after graduation</span></header>
+    <div class="bar" style="height:14px"><i style="width:${Math.min(100,100*tot/2000)}%;background:linear-gradient(90deg,var(--mint),var(--sky))"></i></div>
+    <p class="small muted" style="margin-top:8px">${tot} done so far. Quality of review matters more than count, so read every explanation.</p></section>
+  ${olCoveragePanel()}
+  <section class="panel"><header><h2>Score by set</h2><span class="muted small">Dots use each subject's color. Dashed line is your goal of ${S.settings.mbeGoal}%.</span></header>${scoreChart(sets)}</section>
+  <section class="grid g2">
+    <div class="panel"><header><h2>By subject</h2></header>
+      <div class="weak">${MBE_SUBJECTS.map(s=>{ const r=subjS[s]; if(!r) return `<span class="s">${subj(s)}</span><span class="bar"></span><span class="muted small">·</span><span class="muted small">none yet</span>`;
+        const p=pct(r.right,r.n); return `<span class="s">${subj(s)}</span><span class="bar"><i style="width:${p}%;background:${sc(s)}"></i></span><span class="num">${p}%</span><span class="muted small num">${r.right}/${r.n}</span>`; }).join("")}</div></div>
+    <div class="panel"><header><h2>Why you miss</h2><span class="muted small">${tagTotal} of ${missTotal} tagged${lucky?` · ${lucky} lucky guesses`:""}</span></header>
+      ${tagTotal? `<div class="weak">${REASONS.map((x,i)=>{ const n=tags[x.r]||0, p=pct(n,tagTotal); return `<span class="s small">${esc(x.r)}</span><span class="bar"><i style="width:${p}%;background:var(${colors[i]})"></i></span><span class="num">${p}%</span><span class="muted small num">${n}</span>`; }).join("")}</div>`
+        : `<div class="empty">Tag your misses in the error log to see the pattern here.</div>`}</div>
+  </section>
+  <section class="panel"><header><h2>Weakness map</h2><span class="muted small">Weakest first in each subject, with roughly how many MBE questions cover each area</span></header>
+    <div class="weak">${Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).map(([s,rs])=>{ const r=subjS[s], p=pct(r.right,r.n);
+      return `<div class="subj-h">${subj(s)}<span class="chip ${tone(p)}">${p}%</span></div>` + rs.sort((a,b)=>a.p-b.p).map(r=>`<span class="s"><span>${esc(r.subtopic)}</span><span class="muted small">about ${r.w} Qs per exam</span></span><span class="bar"><i style="width:${r.p}%;background:var(--${tone(r.p)})"></i></span><span class="num">${r.p}%</span><span class="muted small num">${r.right}/${r.n}</span>`).join(""); }).join("")}</div></section>
+  <section class="panel"><header><h2>Settings</h2></header>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      <label class="field"><span>Study days per week goal</span><input type="number" id="setWeek" min="1" max="7" value="${S.settings.weekGoal}"></label>
+      <label class="field"><span>New flashcards per day</span><input type="number" id="setNew" min="1" max="100" value="${S.settings.newPerDay}"></label>
+      <label class="field"><span>Practice score goal (%)</span><input type="number" id="setGoal" min="30" max="100" value="${S.settings.mbeGoal}"></label>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSettings">Save settings</button><button class="btn ghost" data-act="export">Download a backup (JSON)</button></div></section></div>`;
+}
+function scoreChart(sets){
+  if (!sets.length) return `<div class="empty">No sets yet.</div>`;
+  const W=720,H=250,L=40,R=16,T=18,B=50, iw=W-L-R, ih=H-T-B;
+  const x = i => L + (sets.length===1? iw/2 : i*iw/(sets.length-1)), y = p => T + ih - p/100*ih;
+  const pts = sets.map((s,i)=>{ const t=setTotals(s), p=pct(t.correct,t.total), sj = s.subject || [...new Set((s.questions||[]).map(q=>q.subject))][0] || ""; return {x:x(i), y:y(p), p, s, sj}; });
+  const grid = [0,25,50,75,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join("");
+  const goal = `<line x1="${L}" x2="${W-R}" y1="${y(S.settings.mbeGoal)}" y2="${y(S.settings.mbeGoal)}" stroke="var(--sun)" stroke-width="2" stroke-dasharray="6 5"/>`;
+  const area = `<path d="M${pts[0].x},${y(0)} ${pts.map(p=>`L${p.x},${p.y}`).join(" ")} L${pts.at(-1).x},${y(0)} Z" fill="var(--accent)" opacity=".1"/>`;
+  const line = `<path d="${pts.map((p,i)=>`${i?"L":"M"}${p.x},${p.y}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  const dots = pts.map((p,i)=>`<circle cx="${p.x}" cy="${p.y}" r="${i===pts.length-1?7:5.5}" fill="${sc(p.sj)}" stroke="var(--surface)" stroke-width="2"/><text class="lbl" x="${p.x}" y="${p.y-12}" text-anchor="middle">${p.p}%</text>
+    <text x="${p.x}" y="${H-30}" text-anchor="middle">${esc((p.s.name||"").replace("PASS ","").replace("Homework","HW"))}</text><text x="${p.x}" y="${H-15}" text-anchor="middle" style="fill:${sc(p.sj)}">${esc(p.sj.split(" ")[0])}</text>`).join("");
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:520px;display:block" role="img" aria-label="Score by practice set">${grid}${goal}${area}${line}${dots}</svg></div>`;
+}
+
+// ---------- Playbook ----------
+function vPlaybook(){
+  const cov = [
+    ["Civil Procedure",["About two thirds: jurisdiction and venue, pretrial procedures, motions","About one third: law applied by federal courts, jury trials, verdicts and judgments, appealability and review","Assume the FRCP and Title 28 apply"]],
+    ["Constitutional Law",["About half: individual rights","About half: judicial review, separation of powers, federal and state relations"]],
+    ["Contracts",["About half: formation, plus performance, breach and discharge","About half: defenses, parol evidence and interpretation, remedies, third-party rights","6 to 7 questions on UCC Article 2"]],
+    ["Criminal Law",["About half: constitutional protection of accused persons","About half: homicide, other crimes, inchoate crimes and parties, general principles"]],
+    ["Evidence",["Hearsay, 8 to 9","Presentation of evidence (presumptions, mode, impeachment), 6 to 7","Relevancy, about 5","Privileges and writings, about 4 to 5"]],
+    ["Real Property",["About 5 each: ownership, rights in land, contracts, mortgages, titles"]],
+    ["Torts",["About half: negligence","About half: intentional torts, strict and products liability, other torts","Assume no statute, survival and wrongful death available, and joint and several liability with pure comparative negligence"]]
+  ];
+  const sec = (id, color, icon, title, body) => `<section class="panel pb" id="${id}"><h2><span class="badge ${color}">${ic(icon)}</span>${title}</h2><div class="stack" style="margin-top:14px">${body}</div></section>`;
+  return `<div class="stack" style="gap:16px">
+  <div class="stack" style="gap:6px;max-width:72ch"><h2>Playbook</h2><p class="muted">What PASS I has taught so far about the exam, in one place. Pulled from the Class 2 slides, the MBE review chart, the essay self-assessment, the homicide chart, the PT materials and the State Bar reading.</p></div>
+  <div class="toc">${[["pb-exam","The exam"],["pb-mbe","MBE"],["pb-essay","Essays"],["pb-pt","Performance test"],["pb-homicide","Homicide flow"],["pb-admit","Admissions checklist"],["pb-day","Exam day"]].map(([h,l])=>`<button class="btn sm" data-act="jump" data-h="${h}">${l}</button>`).join("")}</div>
+  ${sec("pb-exam","acc","scale","The California Bar Exam", `
+    <div class="stats">
+      <div class="stat" style="background:var(--coral-soft)"><b>5</b><span>one-hour essays</span></div>
+      <div class="stat" style="background:var(--grape-soft)"><b>1</b><span>90-minute performance test</span></div>
+      <div class="stat" style="background:var(--sky-soft)"><b>200</b><span>MBE questions, about 50% of your score</span></div>
+      <div class="stat" style="background:var(--mint-soft)"><b>1390</b><span>scale score needed out of 2000</span></div>
+    </div>
+    <ul class="ticks">
+      <li><span>Essays and the PT are graded 40 to 100 in 5-point steps. To earn a 40 you must at least identify the subject and try to apply law to facts.</span></li>
+      <li><span>A score from 1350 to 1389 after one read gets a second read by different graders, and the two reads are averaged.</span></li>
+      <li><span>Written scores are scaled to the MBE. Handwriting, spelling and grammar aren't graded.</span></li>
+      <li><span>The MBE is federal law only. Civil Procedure, Community Property, Evidence and Professional Responsibility can test California distinctions on the essays and PT.</span></li>
+      <li><span>Essay and PT subjects are Business Associations, Civil Procedure, Community Property, Constitutional Law, Contracts, Criminal Law and Procedure, Evidence, Professional Responsibility, Real Property, Remedies, Torts, Trusts, and Wills and Succession.</span></li>
+      <li><span>July results come out in mid-November.</span></li>
+    </ul>`)}
+  ${sec("pb-mbe","sky","target","The MBE", `
+    <p>200 questions in two 3-hour sessions of 100. 175 are scored and 25 are unscored pretest questions. PASS aims for about 60 to 65% correct, roughly 130 of 200. You can miss around 70 and still be okay.</p>
+    <h3>What's tested, 25 scored questions per subject</h3>
+    <div class="cov">${cov.map(([s,items])=>`<div class="c" style="--c:${sc(s)}">${subj(s)}<ul>${items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></div>`).join("")}</div>
+    <h3>How to attack a question</h3>
+    <ol class="steps">${MBE_ATTACK.map(s=>`<li><span>${esc(s)}</span></li>`).join("")}</ol>
+    <div class="grid g2">
+      <div class="tint sky stack" style="gap:8px"><strong>Remember</strong><ul class="ticks" style="--c:var(--sky)">
+        <li><span>One answer is always completely correct. Pick the best one, and if an element is missing from an option, it's wrong.</span></li>
+        <li><span>Don't assume facts. Use only what's written.</span></li>
+        <li><span>If you don't recognize a term in an option, that option is probably wrong.</span></li>
+        <li><span>There are no patterns. Several Bs in a row is fine.</span></li>
+        <li><span>A blank counts as wrong. Never skip.</span></li>
+        <li><span>Most people do worse when they change answers. Track it, and go with your gut.</span></li></ul></div>
+      <div class="tint sun stack" style="gap:8px"><strong>Practice the PASS way</strong><ul class="ticks" style="--c:var(--sun)">
+        <li><span>Aim for 1,600 to 2,000 questions after graduation, mixing sources like AdaptiBar and Themis.</span></li>
+        <li><span>Read every explanation. Why was the wrong one wrong, and why was the right one right?</span></li>
+        <li><span>Now, use practice mode in short sessions, like 20 minutes. Make a flashcard for any tricky rule.</span></li>
+        <li><span>During prep, swap some Themis assignments for AdaptiBar, and do some full practice exams on paper.</span></li>
+        <li><span>Keep accuracy at 65% or higher by bar month.</span></li></ul></div>
+    </div>
+    <h3>Timing checkpoints, 100 questions in 3 hours</h3>
+    <div class="timing">${[["at 0:30",17],["at 1:00",34],["at 1:30",51],["at 2:00",68],["at 2:30",85],["at 3:00",100],["to review","+4"]].map(([t,n])=>`<div><b>${n}</b><span>${t}</span></div>`).join("")}</div>
+    <p class="small muted">Set a watch to 12:00:00 and start it when the proctor says begin. Don't spend more than about 3 minutes on any one question. PASS says not to worry much about timing until bar month.</p>`)}
+  ${sec("pb-essay","coral","pen","Essays", `
+    <p>The bar wants you to tell material facts from immaterial ones, find the points the case turns on, and reason like a lawyer to a sound conclusion. A bare conclusion earns little credit.</p>
+    <ol class="steps">${IRAC_REMIND.map(s=>`<li><span>${esc(s)}</span></li>`).join("")}</ol>
+    <div class="grid g2">
+      <div class="tint coral stack" style="gap:8px"><strong>Crimes essay habits from PASS</strong><ul class="ticks" style="--c:var(--coral)">
+        <li><span>For murder, walk through all four types of malice, then check whether it reduces to manslaughter.</span></li>
+        <li><span>"Murder or any lesser included offense" in the call means discuss manslaughter too.</span></li>
+        <li><span>Always cover defenses, and say which charge is most likely.</span></li>
+        <li><span>Whenever you raise a 4th, 5th or 6th Amendment issue, add the exclusionary rule.</span></li>
+        <li><span>Know the nuances. Miranda doesn't apply when D doesn't know he's talking to a government agent, but the Sixth Amendment can still bar the statement after charges.</span></li></ul></div>
+      <div class="tint grape stack" style="gap:8px"><strong>After every essay</strong><ul class="ticks" style="--c:var(--grape)">
+        <li><span>Self-assess against the model with the Bar Bravery checklist in Essays and PTs.</span></li>
+        <li><span>Add every missed rule or element to your outline or a flashcard.</span></li>
+        <li><span>The goal is that if you saw that issue again, you could state it correctly and pass.</span></li>
+        <li><span>Essays build MBE skill too. Treat each MBE question like a mini essay.</span></li></ul></div>
+    </div>`)}
+  ${sec("pb-pt","grape","book","Performance test", `
+    <p>You get a File (facts), a Library (law) and a task. You're graded on following instructions, content, thoroughness and organization. It tests sorting relevant facts, applying unfamiliar law, spotting ethics issues and communicating clearly.</p>
+    <ol class="steps">${PT_REMIND.map(s=>`<li><span>${esc(s)}</span></li>`).join("")}</ol>
+    <div class="grid g2">
+      <div class="tint grape stack" style="gap:8px"><strong>Outline before you write</strong><p class="small">Top of the page: tone, goal, audience. Then three columns for issues, applicable rules with the case or statute, and relevant facts.</p>
+        <strong>Common task formats</strong><ul class="ticks" style="--c:var(--grape)"><li><span>Objective memo to a supervising attorney, the most common past task</span></li><li><span>Persuasive brief or memorandum of points and authorities</span></li><li><span>Letter to a client or opposing counsel</span></li><li><span>Declarations and closing arguments</span></li></ul></div>
+      <div class="tint sky stack" style="gap:8px"><strong>Past PT subjects</strong><p class="small">From 2007 to 2020, PTs touched professional responsibility most often, followed by evidence, contracts, criminal procedure, civil procedure, property, wills and trusts, torts, remedies and employment. Old PTs with two sample answers each are on the State Bar's past exams page.</p>
+        <strong>Comparing to the sample</strong><p class="small">Check audience and tone, each heading, the rules and facts used under it, whether you followed the task memo, whether your order and sub-issues match, and whether you cited every case the sample did.</p></div>
+    </div>`)}
+  ${sec("pb-homicide","coral","scale","Homicide flow", `
+    <p class="muted small">Based on the PASS I homicide chart. Use it as the order of analysis on any homicide essay.</p>
+    <div class="flow">
+      <div class="node q"><strong>1. Homicide.</strong> An unlawful killing of a human being, caused actually and proximately by D's act.</div>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <div class="node q"><strong>2. Was there malice?</strong> Intent to kill, intent to cause grievous bodily harm, reckless indifference to human life (depraved heart), or felony murder, meaning a foreseeable killing during an inherently dangerous felony.</div>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <div class="fork">
+        <div class="node"><strong>Malice, yes</strong><p class="small" style="margin-top:4px">With premeditation and deliberation or a statutory felony, it's <strong>first degree</strong>. Otherwise, with no form of manslaughter, <strong>second degree</strong>.</p><p class="small" style="margin-top:6px">Felony murder ends once D reaches a place of safety. Under the redline view, there's no liability when a co-felon is killed by the victim or police.</p></div>
+        <div class="node"><strong>Malice, but mitigated</strong><p class="small" style="margin-top:4px"><strong>Voluntary manslaughter.</strong> Heat of passion from adequate provocation, or imperfect self-defense.</p></div>
+        <div class="node"><strong>No malice</strong><p class="small" style="margin-top:4px"><strong>Involuntary manslaughter.</strong> Criminal or gross negligence, or a death during a misdemeanor.</p></div>
+      </div>
+      <div class="arrow" aria-hidden="true">↓</div>
+      <div class="node out"><strong>3. Defenses.</strong> Self-defense, insanity, intoxication, mistake. Then conclude on the most likely charge.</div>
+    </div>`)}
+  ${sec("pb-admit","mint","flag","Admissions checklist", `
+    <p class="muted small">From the PASS I first reading assignment. Fees are as listed there for 2026, so confirm on calbar.ca.gov before you pay.</p>
+    <div>${ADMIT.map(a=>{ const d = (S.admit[a.id]||{}).done; return `<div class="ck"><input type="checkbox" id="ad_${a.id}" data-act="admit" data-k="${a.id}" ${d?"checked":""}><label for="ad_${a.id}" class="stack" style="gap:2px"><strong style="${d?"text-decoration:line-through;opacity:.6":""}">${esc(a.t)}</strong><span class="small muted">${esc(a.d)}</span></label></div>`; }).join("")}</div>`)}
+  ${sec("pb-day","sun","timer","Exam day", `
+    <ul class="ticks" style="--c:var(--sun)">
+      <li><span>Stop writing or typing the moment time is called. Writing after time is a conduct violation.</span></li>
+      <li><span>Bringing a prohibited item into the room can mean a zero for that whole session, even if it's confiscated.</span></li>
+      <li><span>MBE day is 100 questions in the morning, a lunch break, then 100 in the afternoon. Keep your watch next to you.</span></li>
+      <li><span>On a paper answer sheet, check that each bubble matches its question number. It's easy to shift a whole sheet.</span></li>
+      <li><span>For a court filing in the PT, write [on caption] at the top instead of building the caption.</span></li>
+    </ul>`)}
+  </div>`;
+}
+
+// ---------- Notes ----------
+function vNotes(){
+  const i = Math.floor(daysBetween("2026-01-05", today())/7) % NOTES.length, colors = ["acc","sun","mint","sky","grape","coral"];
+  return `<div class="stack" style="gap:16px">
+    <div class="stack" style="gap:6px;max-width:68ch"><h2>Study notes</h2><p class="muted">What the research on learning says, and how to use it in bar prep. A new one leads the Today page each week.</p></div>
+    <div class="notes">${NOTES.map((n,j)=>`<article class="panel"><div class="row"><span class="badge ${colors[j%6]}">${ic("bulb")}</span><span class="label">${esc(n.k)}</span>${j===i?`<span class="chip sun">this week</span>`:""}</div>
+      <h3>${esc(n.t)}</h3><p>${esc(n.f)}</p><p class="how"><strong>In bar prep.</strong> ${esc(n.h)}</p><p class="src">${esc(n.s)}</p></article>`).join("")}</div></div>`;
+}
+
+// ---------- Focus mode ----------
+const F = { stage:"plan", type:"MBE questions", len:50, intention:"", start:0, end:0, paused:0, pauseAt:0, stopAt:0, timer:0, lock:null, outcome:"", fix:"" };
+const TYPES = ["MBE questions","Flashcards","Blank page recall","Timed essay","Performance test","Outline review","Other"];
+function reminder(){
+  const l = F.type==="MBE questions" ? ["How to attack each question",MBE_ATTACK] : F.type==="Timed essay" ? ["Essay checklist",IRAC_REMIND] : F.type==="Performance test" ? ["PT checklist",PT_REMIND] : null;
+  return l ? `<div class="remind"><span class="label" style="color:#9FA6C4">${l[0]}</span><ol>${l[1].map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>` : "";
+}
+function paceText(){ const el = (F.len*60000 - remaining())/60000, n = Math.round(F.len/1.8); return `At MBE pace you'd be on question ${Math.min(Math.floor(el/1.8)+1, n)} of ${n}`; }
+function openFocus(type, intent, len){ if (type) F.type = type; if (intent) F.intention = intent; if (len) F.len = len; F.stage = "plan"; $("#focus").hidden = false; document.body.style.overflow="hidden"; drawFocus(); setTimeout(()=>{ const el=$("#fIntent"); if (el) el.focus(); },30); }
+function closeFocus(){ clearInterval(F.timer); releaseLock(); $("#focus").hidden = true; document.body.style.overflow=""; document.title="Bar Prep Dashboard Demo"; if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); schedule(); }
+function remaining(){ const now = F.pauseAt || Date.now(); return Math.max(0, F.end + F.paused - now); }
+function drawFocus(){
+  const el = $("#focus"), aff = AFFIRM[(dayNo()+5) % AFFIRM.length];
+  if (F.stage==="plan") el.innerHTML = `<button class="btn x" data-f="close">Close</button><div class="in">
+    <span class="label" style="color:#9FA6C4">Focus mode</span>
+    <h2>What will you finish in this session?</h2>
+    <textarea id="fIntent" rows="3" placeholder="Be specific. e.g. 33 mixed MBE questions in 60 minutes, then tag every miss." aria-label="Session goal">${esc(F.intention)}</textarea>
+    <div class="stack" style="gap:8px"><span class="label" style="color:#9FA6C4">Type of work</span>
+      <div class="row">${TYPES.map(t=>`<button class="btn sm ${t===F.type?"pick":""}" data-f="type" data-v="${t}">${t}</button>`).join("")}</div></div>
+    <div class="stack" style="gap:8px"><span class="label" style="color:#9FA6C4">Length</span>
+      <div class="row">${[25,50,60,90,180].map(m=>`<button class="btn sm ${m===F.len?"pick":""}" data-f="len" data-v="${m}">${m>=60?(m/60)+" hr"+(m>60?"s":""):m+" min"}</button>`).join("")}</div></div>
+    ${reminder()}
+    <div class="remind"><span class="label" style="color:#9FA6C4">Before you press start</span><span>Phone in another room. Other tabs closed. Water on the desk.</span></div>
+    <div class="row"><button class="btn go" data-f="start">Start ${F.len} minutes</button><span class="muted small" id="fErr"></span></div></div>`;
+  else if (F.stage==="run"){ const r = remaining(), tot = F.len*60000;
+    el.innerHTML = `<div class="in" style="gap:24px">
+      <span class="label" style="color:#9FA6C4;text-align:center">${esc(F.type)}${F.pauseAt?" · paused":""}</span>
+      <div class="timer" id="fClock">${mmss(r/1000)}</div>
+      <div class="ring"><i id="fRing" style="width:${100-100*r/tot}%"></i></div>
+      ${F.type==="MBE questions"?`<p class="faff" id="fPace" style="color:#9FA6C4;font-size:15px">${paceText()}</p>`:""}
+      <p class="intent">${esc(F.intention)}</p>
+      <p class="faff">${esc(aff)}</p>
+      <div class="row" style="justify-content:center"><button class="btn" data-f="pause">${F.pauseAt?"Resume":"Pause"}</button><button class="btn" data-f="finish">End session</button>${document.fullscreenEnabled?`<button class="btn" data-f="fs">Full screen</button>`:""}</div></div>`; }
+  else el.innerHTML = `<div class="in">
+    <span class="label" style="color:#9FA6C4">Session done · ${Math.round(elapsedMin())} minutes</span>
+    <h2>Did you do what you set out to do?</h2>
+    <p class="intent" style="text-align:left;font-size:19px;opacity:.85">${esc(F.intention)}</p>
+    <div class="row">${["Yes","Partly","No"].map(o=>`<button class="btn ${F.outcome===o?"pick":""}" data-f="outcome" data-v="${o}">${o}</button>`).join("")}</div>
+    <label class="field"><span style="color:#9FA6C4">One thing to do differently next session</span><input type="text" id="fFix" value="${esc(F.fix)}" placeholder="e.g. Tag misses right after the set, not later"></label>
+    <div class="row"><button class="btn go" data-f="save">Save session</button><button class="btn" data-f="discard">Don't log it</button></div></div>`;
+}
+function elapsedMin(){ return Math.max(0, ((F.stopAt||Date.now()) - F.start - F.paused)/60000); }
+function tick(){ if (F.stage!=="run") return; const r = remaining(), c=$("#fClock"), g=$("#fRing"), p=$("#fPace");
+  if (c) c.textContent = mmss(r/1000); if (g) g.style.width = (100-100*r/(F.len*60000))+"%"; if (p) p.textContent = paceText();
+  document.title = F.pauseAt ? "Paused" : `${mmss(r/1000)} · Focus`;
+  if (r<=0){ chime(); stopRun(); } }
+function stopRun(){ clearInterval(F.timer); F.stopAt = Date.now(); if (F.pauseAt){ F.paused += Date.now()-F.pauseAt; F.pauseAt=0; } F.stage="done"; releaseLock(); document.title="Bar Prep Dashboard Demo"; drawFocus(); }
+async function getLock(){ try { if ("wakeLock" in navigator) F.lock = await navigator.wakeLock.request("screen"); } catch(e){} }
+function releaseLock(){ try { F.lock && F.lock.release(); } catch(e){} F.lock=null; }
+function chime(){ try { const a = new (window.AudioContext||window.webkitAudioContext)(); [0,0.35,0.7].forEach(t=>{ const o=a.createOscillator(), g=a.createGain(); o.frequency.value=660; g.gain.setValueAtTime(0.0001,a.currentTime+t); g.gain.exponentialRampToValueAtTime(0.2,a.currentTime+t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+t+0.3); o.connect(g).connect(a.destination); o.start(a.currentTime+t); o.stop(a.currentTime+t+0.32); }); } catch(e){} }
+$("#focus").addEventListener("input", e => { if (e.target.id==="fIntent") F.intention = e.target.value; if (e.target.id==="fFix") F.fix = e.target.value; });
+$("#focus").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]"); if (!b) return; const f = b.dataset.f;
+  if (f==="close") closeFocus();
+  if (f==="type"){ F.type = b.dataset.v; if (F.type==="Timed essay") F.len = 60; if (F.type==="Performance test") F.len = 90; drawFocus(); }
+  if (f==="len"){ F.len = +b.dataset.v; drawFocus(); }
+  if (f==="start"){ if (!F.intention.trim()){ $("#fErr").textContent = "Write what you'll finish first. A specific goal is what makes the session count."; $("#fIntent").focus(); return; }
+    F.start = Date.now(); F.end = F.start + F.len*60000; F.paused = 0; F.pauseAt = 0; F.stopAt = 0; F.outcome=""; F.fix=""; F.stage="run"; getLock(); drawFocus(); F.timer = setInterval(tick, 1000); }
+  if (f==="pause"){ if (F.pauseAt){ F.paused += Date.now()-F.pauseAt; F.pauseAt = 0; getLock(); } else { F.pauseAt = Date.now(); releaseLock(); } drawFocus(); }
+  if (f==="finish") stopRun();
+  if (f==="fs"){ (document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() : Promise.reject()).catch(()=>{}); }
+  if (f==="outcome"){ F.outcome = b.dataset.v; drawFocus(); }
+  if (f==="save"){ put("sessions", uid(), { date: ymd(new Date(F.start)), start:new Date(F.start).toISOString(), minutes: Math.round(elapsedMin()), planned:F.len, type:F.type, intention:F.intention.trim(), outcome:F.outcome||"", fix:F.fix.trim() });
+    F.intention = ""; toast(`Session logged. ${AFFIRM[Math.floor(Math.random()*AFFIRM.length)]}`); closeFocus(); }
+  if (f==="discard"){ F.intention=""; closeFocus(); }
+});
+document.addEventListener("visibilitychange", () => { if (document.visibilityState==="visible" && F.stage==="run" && !F.pauseAt) getLock(); });
+
+// ---------- actions ----------
+const confirm2 = (b, label) => { if (b.dataset.sure) return true; b.dataset.sure="1"; b.textContent=label||"Click again"; return false; };
+$("#view").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.tagName==="SELECT" || (b.tagName==="INPUT" && b.type!=="checkbox")) return;
+  const a = b.dataset.act, t = today();
+  if (a==="focus") openFocus(b.dataset.type);
+  if (a==="pickDay"){ ui.heatDay = b.dataset.d; schedule(); return; }
+  if (a==="logTime"){ ui.logTime = !ui.logTime; schedule(); return; }
+  if (a==="goal"){ const g = Math.min(7, Math.max(1, (S.settings.weekGoal||5) + (+b.dataset.d))); put("settings","main",{...S.settings, weekGoal:g}); return; }
+  if (a==="saveTime"){ const d = $("#ltDate").value || t, m = Math.round(+$("#ltMin").value||0);
+    if (m < 1){ toast("Enter how many minutes"); return; } if (d > t){ toast("Pick today or an earlier day"); return; }
+    put("sessions", uid(), { date:d, start:new Date(d+"T12:00:00").toISOString(), minutes:m, planned:m, type:$("#ltType").value, intention:$("#ltNote").value.trim(), outcome:"", fix:"", manual:true });
+    ui.logTime = false; ui.heatDay = d; toast(`Added ${m} min`); return; }
+  if (a==="delSession"){ if (!confirm2(b,"Remove?")) return; del("sessions", b.dataset.id); return; }
+  if (a==="tick"){ const d = S.days[t] ? JSON.parse(JSON.stringify(S.days[t])) : {}; d.checks = d.checks||{}; d.checks[b.dataset.k] = b.getAttribute("aria-pressed")!=="true"; put("days", t, d); }
+  if (a==="saveFeel"){ const d = S.days[t] ? JSON.parse(JSON.stringify(S.days[t])) : {checks:{}}; d.feel1=$("#feel1").value.trim(); d.feel2=$("#feel2").value.trim(); d.nurture=$("#nurture").value.trim(); put("days", t, d); toast("Check-in saved. Now go take care of it."); }
+  if (a==="reveal"){ ui.cardRevealed = true; render(); }
+  if (a==="rate"){ const k = ui.cardCurrent, r = +b.dataset.r; ui.cardRevealed = false; ui.cardCurrent = null; clearOnNext("cardTry"); put("cards", k, nextState(S.cards[k], r)); if (r===0) toast("It'll come back later today"); }
+  if (a==="newTopic"){ ui.newTopic = !ui.newTopic; render(); }
+  if (a==="createTopic"){ const name = $("#ntName").value.trim(); if (!name){ toast("Name the topic first"); return; } const id = uid(); ui.topic=id; ui.newTopic=false; ui.editList=true; ui.recallStage="write"; ui.recallRound=1; put("recall", id, {name, subject:$("#ntSubject").value, checklist:[], attempts:[], due:t}); }
+  if (a==="suggest"){ const subject=b.dataset.s, name=b.dataset.t; let items;
+    if (b.dataset.kind==="starter") items = (STARTERS.find(s=>s.name===name)||{list:[]}).list.slice();
+    else items = [...new Set(allQuestions().filter(q=>q.subject===subject && q.subtopic===name && isMiss(q) && q.note).map(q=>q.note))];
+    const id = uid(); ui.topic=id; ui.recallStage="write"; ui.recallRound=1; ui.editList=false; clearOnNext("recallText"); put("recall", id, {name, subject, checklist:items, attempts:[], due:t, from:b.dataset.kind}); }
+  if (a==="rdOpen"){ ui.rdKey=b.dataset.k; ui.rdPage=null; schedule(); window.scrollTo(0,0); return; }
+  if (a==="rdBack"){ ui.rdKey=null; schedule(); return; }
+  if (a==="rdGroup"){ ui.rdOpen[b.dataset.g] = b.getAttribute("aria-expanded")!=="true"; schedule(); return; }
+  if (a==="rdToc"){ ui.rdToc = !ui.rdToc; schedule(); return; }
+  if (a==="rdZoom"){ rdZoom(+b.dataset.d); return; }
+  if (a==="rdSave"){ rdSave(); return; }
+  if (a==="rdRetry"){ RD.key=null; mountReader(); return; }
+  if (a==="rdGo" || a==="rdGoIn"){ const o = S.outlines[ui.rdKey]; if (!o) return;
+    const p = Math.min(o.pages, Math.max(1, Math.round(+(a==="rdGo" ? b.dataset.p : $("#rdPageIn").value) || 1)));
+    ui.rdPage = p; RD.jumped = null; if (a==="rdGo" && window.innerWidth <= 860){ ui.rdToc = false; setTimeout(()=>{ const w=$("#view .pdfwrap"); w && w.scrollIntoView({block:"start"}); }, 60); } const l = lsGet("bd-reader") || {}; l[o.key] = p; lsSet("bd-reader", l); clearOnNext("rdPageIn"); schedule(); return; }
+  if (a==="olKey"){ ui.olKey = b.dataset.k; schedule(); return; }
+  if (a==="olGroup"){ const k = b.dataset.g; ui.olOpen[k] = b.getAttribute("aria-expanded")!=="true"; schedule(); return; }
+  if (a==="olStart"){ startOutlineTopic(b.dataset.k, b.dataset.id); return; }
+  if (a==="olBrowse"){ ui.topic=null; ui.newTopic=false; schedule(); return; }
+  if (a==="olOpenRecall"){ ui.topic=null; ui.olKey=b.dataset.k; if (route==="recall") schedule(); else location.hash="#recall"; return; }
+  if (a==="pickTopicGo"){ ui.topic=b.dataset.id; ui.recallStage="write"; ui.recallRound=1; ui.editList=false; ui.recallGot={}; clearOnNext("recallText"); location.hash="#recall"; return; }
+  if (a==="pickTopic"){ ui.topic=b.dataset.id; ui.recallStage="write"; ui.recallRound=1; ui.editList=false; ui.recallGot={}; clearOnNext("recallText"); render(); }
+  if (a==="editList"){ ui.editList = !ui.editList; render(); }
+  if (a==="addItem"){ const inp = $("#newItem") || $("#addMissed"); const v = inp && inp.value.trim(); if (!v) return; const r = {...S.recall[ui.topic]}; r.checklist = [...(r.checklist||[]), v]; clearOnNext(inp.id); put("recall", ui.topic, r); }
+  if (a==="rmItem"){ const r = {...S.recall[ui.topic]}; r.checklist = r.checklist.filter((_,i)=>i!==+b.dataset.i); put("recall", ui.topic, r); }
+  if (a==="delTopic"){ if (confirm2(b,"Click again to delete")){ const id = ui.topic; ui.topic=null; ui.editList=false; del("recall", id); } }
+  if (a==="checkRecall"){ ui.recallTextSaved = ($("#recallText")||{}).value || ""; ui.recallGot = {}; ui.recallStage="check"; render(); }
+  if (a==="got"){ ui.recallGot[+b.dataset.i] = b.checked; render(); }
+  if (a==="saveRecall"){ const r = JSON.parse(JSON.stringify(S.recall[ui.topic])), total = r.checklist.length, got = r.checklist.filter((_,i)=>ui.recallGot[i]).length;
+    r.attempts = [...(r.attempts||[]), {date:t, got, total, round:ui.recallRound}].slice(-40);
+    const full = got===total; r.lastGap = full ? Math.min(30, (r.lastGap||1)*2+1) : 1; r.due = addDays(t, r.lastGap);
+    ui.recallStage="write"; ui.recallGot={}; clearOnNext("recallText");
+    if (b.dataset.again){ ui.recallRound++; toast(`Round ${ui.recallRound}. Blank page again.`); setTimeout(()=>{ const ta=$("#recallText"); ta && ta.focus(); },80); }
+    else { ui.recallRound=1; toast(full?`All ${total} items. Back in ${r.lastGap} days.`:`${got} of ${total}. Back tomorrow.`); }
+    put("recall", ui.topic, r);
+    if (b.dataset.next && r.ref){ const o = S.outlines[r.ref.key], i = o ? o.topics.findIndex(x=>x.id===r.ref.id) : -1, nx = o && o.topics[i+1];
+      if (nx) startOutlineTopic(o.key, nx.id); else { ui.topic=null; toast(`That was the last section of ${r.ref.label}.`); } } }
+  if (a==="logForm"){ ui.logForm = !ui.logForm; render(); }
+  if (a==="helpReason"){ ui.helpReason = !ui.helpReason; render(); }
+  if (a==="saveSet") saveSet();
+  if (a==="delSet"){ if (confirm2(b)) del("sets", b.dataset.id); }
+  if (a==="reflect"){ ui.reflect = b.dataset.id || null; render(); if (ui.reflect) setTimeout(()=>{ const el=$("#rf_common"); el && el.scrollIntoView({block:"center"}); },30); }
+  if (a==="saveReflect"){ const id=b.dataset.id; const data = {common:$("#rf_common").value.trim(), fix:$("#rf_fix").value.trim(), area:$("#rf_area").value.trim(), rules:$("#rf_rules").value.trim(), date:t}; ui.reflect=null; put("reflections", id, data); toast("Reflection saved"); }
+  if (a==="essayForm"){ ui.essayForm = !ui.essayForm; render(); }
+  if (a==="addEssay"){ const v=$("#essayName").value.trim(); if(!v) return; const s=$("#essaySubj").value; ui.essayForm=false; put("essays", uid(), {name:v, subjects:[s], kind:s==="Performance Test"?"PT":"essay", stage:STAGES[0], added:t, order:50}); }
+  if (a==="delEssay"){ if (confirm2(b)) del("essays", b.dataset.id); }
+  if (a==="writeEssay"){ const e = S.essays[b.dataset.id]; openFocus(e.kind==="PT"?"Performance test":"Timed essay", `Write ${e.name} cold, start to finish`, e.kind==="PT"?90:60); }
+  if (a==="assess"){ ui.assess = b.dataset.id || null; render(); if (ui.assess) window.scrollTo({top:0,behavior:"smooth"}); }
+  if (a==="assessTick"){ const e = JSON.parse(JSON.stringify(S.essays[b.dataset.id])); e.assess = e.assess||{}; e.assess[b.dataset.k] = b.checked;
+    const list = e.kind==="PT"?PTCHECK:BRAVERY; if (list.every(([k])=>e.assess[k]) && STAGES.indexOf(e.stage)<2) e.stage = STAGES[2]; put("essays", b.dataset.id, e); }
+  if (a==="savePlan"){ put("essays", b.dataset.id, {...S.essays[b.dataset.id], plan:$("#asPlan").value.trim()}); toast("Plan saved"); }
+  if (a==="admit"){ put("admit", b.dataset.k, {done:b.checked, date:t}); if (b.checked) toast("One step closer to being sworn in"); }
+  if (a==="jump"){ const el = document.getElementById(b.dataset.h); el && el.scrollIntoView({behavior:"smooth", block:"start"}); }
+  if (a==="saveSettings"){ put("settings","main",{ weekGoal: Math.min(7,Math.max(1,+$("#setWeek").value||5)), newPerDay: Math.max(1,+$("#setNew").value||15), mbeGoal: Math.min(100,Math.max(30,+$("#setGoal").value||65)) }); toast("Settings saved"); }
+  if (a==="export") exportData();
+});
+
+$("#view").addEventListener("change", e => {
+  const el = e.target, a = el.dataset.act; if (!a) return;
+  if (a==="rdSwitch"){ ui.rdKey = el.value; ui.rdPage = null; render(); return; }
+  if (a==="cardFilter"){ ui.cardFilter = el.value; ui.cardCurrent=null; ui.cardRevealed=false; render(); }
+  if (a==="logFilter"){ ui.logFilter = el.value; render(); }
+  if (a==="logScope"){ ui.logScope = el.value; render(); }
+  if (a==="logUntagged"){ ui.logUntagged = el.checked; render(); }
+  if (a==="tag"){ put("tags", el.dataset.k, {reason: el.value, at: today()}); }
+  if (a==="essayStage"){ put("essays", el.dataset.id, {...S.essays[el.dataset.id], stage: el.value}); }
+  if (a==="essayField"){ put("essays", el.dataset.id, {...S.essays[el.dataset.id], [el.dataset.f]: el.value}); }
+});
+$("#view").addEventListener("keydown", e => {
+  if (e.key==="Enter" && (e.target.id==="newItem" || e.target.id==="addMissed")){ e.preventDefault(); const b=e.target.parentElement.querySelector("[data-act=addItem]"); b && b.click(); }
+  if (e.key==="Enter" && e.target.id==="ntName"){ e.preventDefault(); $("[data-act=createTopic]").click(); }
+});
+document.addEventListener("keydown", e => {
+  if (route!=="cards" || !$("#focus").hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if (e.key===" " && !ui.cardRevealed){ e.preventDefault(); const b=$("[data-act=reveal]"); b&&b.click(); }
+  if (ui.cardRevealed && ["1","2","3","4"].includes(e.key)){ const b=document.querySelector(`[data-act=rate][data-r="${+e.key-1}"]`); b&&b.click(); }
+});
+function saveSet(){
+  const total = +$("#lfTotal").value, correct = +$("#lfCorrect").value;
+  if (!total || $("#lfCorrect").value==="" || isNaN(correct) || correct>total){ toast("Enter the number of questions and how many you got right"); return; }
+  const id = "log-"+uid(), date = $("#lfDate").value || today(), subject = $("#lfSubject").value;
+  const misses = $("#lfMisses").value.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{ const [q,sub,top,...rule]=l.split(",").map(x=>x.trim());
+    const o = {q:+q||0, subject: sub||subject, subtopic: top||"General", date, miss:true}; const n = rule.join(", "); if (n) o.note = n; return o; });
+  ui.logForm=false; ui.reflect=id;
+  put("sets", id, {id, name: $("#lfName").value.trim() || `${subject} set`, source:"Logged", subject: subject==="Mixed"?"":subject, date, total, correct, seconds:(+$("#lfMin").value||0)*60, summaryOnly:true, questions:misses});
+  toast("Set logged. Take two minutes to reflect.");
+}
+async function exportData(){
+  const data = JSON.stringify({exported:new Date().toISOString(), ...S}, null, 2);
+  try { const d = window.claude && await window.claude.use("downloads"); if (!d) throw 0; await d.save({filename:`bar-prep-backup-${today()}.json`, data}); toast("Backup saved"); }
+  catch(e){ toast("Downloads aren't available in this view"); }
+}
+
+function go(){ const h = location.hash.replace("#",""); route = TABS.some(t=>t[0]===h) ? h : "today"; ui.cardRevealed=false; render(); window.scrollTo(0,0); }
+window.addEventListener("hashchange", go);
+go(); connect();
+setInterval(()=>{ if (route==="today") schedule(); }, 60000);
+})();
+</script>
+
+</body>
+</html>
